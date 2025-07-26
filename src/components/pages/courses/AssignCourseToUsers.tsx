@@ -3,7 +3,7 @@ import { usersService } from '../../../services/usersService';
 import { coursesService } from '../../../services/coursesService';
 import { Button } from '../../ui/Button';
 import { motion } from 'framer-motion';
-import { ChevronLeft, User, BookOpen, Loader2, CheckCircle, UserPlus, ChevronDown } from 'lucide-react';
+import { ChevronLeft, User, BookOpen, Loader2, CheckCircle, UserPlus, ChevronDown, Award, AlertCircle, XCircle, Info } from 'lucide-react';
 
 interface User {
   id: string;
@@ -18,6 +18,15 @@ interface Course {
   fullname: string;
 }
 
+interface LicenseInfo {
+  licenseId: number;
+  allocation: number;
+  used: number;
+  available: number;
+  hasLicense: boolean;
+  isExpired?: boolean;
+}
+
 interface AssignCourseToUsersProps {
   companyId: number;
   onBack?: () => void;
@@ -27,6 +36,7 @@ export const AssignCourseToUsers: React.FC<AssignCourseToUsersProps> = ({ compan
   const [users, setUsers] = useState<User[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [enrollments, setEnrollments] = useState<{ [courseId: string]: string[] }>({});
+  const [licenseInfo, setLicenseInfo] = useState<{ [courseId: string]: LicenseInfo }>({});
   const [loading, setLoading] = useState(true);
   const [assigning, setAssigning] = useState<{ [key: string]: boolean }>({});
   const [activeCourse, setActiveCourse] = useState<string | null>(null);
@@ -39,24 +49,168 @@ export const AssignCourseToUsers: React.FC<AssignCourseToUsersProps> = ({ compan
     ]).then(async ([users, courses]) => {
       setUsers(users);
       setCourses(courses);
-      // Fetch enrollments for each course
+      
+      // Fetch enrollments and license info for each course
       const enrollmentsObj: { [courseId: string]: string[] } = {};
+      const licenseInfoObj: { [courseId: string]: LicenseInfo } = {};
+      
       for (const course of courses) {
+        // Get enrollments
         const enrolled = await coursesService.getCourseEnrollments(course.id);
         enrollmentsObj[course.id] = enrolled.map((u: any) => u.id?.toString() || u.userid?.toString());
+        
+        // Get license information
+        try {
+          const licenseData = await coursesService.getCourseLicenseInfo(companyId, course.id);
+          
+          if (licenseData && licenseData.licenses && licenseData.licenses.length > 0) {
+            
+            // Find all licenses for this specific course by parsing the license name
+            // License names follow the pattern: "License for course {courseId} in school {schoolId}"
+            const courseLicenses = licenseData.licenses.filter((license: any) => {
+              // Parse course ID from license name
+              const nameMatch = license.name.match(/License for course (\d+) in school/);
+              const licenseForCourseId = nameMatch ? nameMatch[1] : null;
+              return licenseForCourseId == course.id;
+            });
+            
+            // Select the best license (non-expired, with available slots)
+            const now = Math.floor(Date.now() / 1000);
+            const courseLicense = courseLicenses
+              .filter((license: any) => {
+                // IOMAD treats expirydate: 0 as expired, so filter those out too
+                const isExpired = (license.expirydate === 0) || (license.expirydate > 0 && license.expirydate < now);
+                const hasAvailable = (parseInt(license.allocation) || 0) > (parseInt(license.used) || 0);
+                return !isExpired && hasAvailable;
+              })
+              .sort((a: any, b: any) => {
+                // Sort by most available licenses first
+                const aAvailable = (parseInt(a.allocation) || 0) - (parseInt(a.used) || 0);
+                const bAvailable = (parseInt(b.allocation) || 0) - (parseInt(b.used) || 0);
+                return bAvailable - aAvailable;
+              })[0] || courseLicenses[0]; // Fallback to first license if no valid ones found
+            
+            if (courseLicense) {
+              // Check if license is expired
+              const now = Math.floor(Date.now() / 1000); // Current timestamp in seconds
+              // IOMAD treats expirydate: 0 as expired (Unix epoch), so we check for that too
+              const isExpired = (courseLicense.expirydate === 0) || (courseLicense.expirydate > 0 && courseLicense.expirydate < now);
+              
+              licenseInfoObj[course.id] = {
+                licenseId: courseLicense.id,
+                allocation: parseInt(courseLicense.allocation) || 0,
+                used: parseInt(courseLicense.used) || 0,
+                available: Math.max(0, (parseInt(courseLicense.allocation) || 0) - (parseInt(courseLicense.used) || 0)),
+                hasLicense: true,
+                isExpired: isExpired
+              };
+            } else {
+              licenseInfoObj[course.id] = {
+                licenseId: 0,
+                allocation: 0,
+                used: 0,
+                available: 0,
+                hasLicense: false
+              };
+            }
+          } else {
+            licenseInfoObj[course.id] = {
+              licenseId: 0,
+              allocation: 0,
+              used: 0,
+              available: 0,
+              hasLicense: false
+            };
+          }
+        } catch (error) {
+          console.error(`Error fetching license info for course ${course.id}:`, error);
+          licenseInfoObj[course.id] = {
+            licenseId: 0,
+            allocation: 0,
+            used: 0,
+            available: 0,
+            hasLicense: false
+          };
+        }
       }
+      
       setEnrollments(enrollmentsObj);
+      setLicenseInfo(licenseInfoObj);
       if (courses.length > 0) setActiveCourse(courses[0].id);
     }).finally(() => setLoading(false));
   }, [companyId]);
 
-  const handleAssign = async (courseId: string, userId: string) => {
-    setAssigning(prev => ({ ...prev, [courseId + '-' + userId]: true }));
-    await coursesService.enrollUserInCourse(courseId, userId);
-    // Refresh enrollments for this course
-    const enrolled = await coursesService.getCourseEnrollments(courseId);
-    setEnrollments(prev => ({ ...prev, [courseId]: enrolled.map((u: any) => u.id?.toString() || u.userid?.toString()) }));
-    setAssigning(prev => ({ ...prev, [courseId + '-' + userId]: false }));
+const handleAssign = async (courseId: string, userId: string) => {
+    const courseLicense = licenseInfo[courseId];
+
+    // --- Pre-flight Checks (Your existing logic is good) ---
+    if (!courseLicense?.hasLicense || courseLicense.isExpired || courseLicense.available <= 0) {
+      alert('Cannot assign user. Please check license availability and status.');
+      return;
+    }
+
+    setAssigning(prev => ({ ...prev, [`${courseId}-${userId}`]: true }));
+
+    try {
+      // --- STEP 1: ALLOCATE THE LICENSE SEAT ---
+      // This reserves a spot for the user and decrements the "available" count in IOMAD.
+      const licenseAllocated = await coursesService.allocateLicenseToUser(
+        courseLicense.licenseId,
+        parseInt(userId),
+        parseInt(courseId)
+      );
+
+      // If the license could not be allocated, stop the entire process.
+      if (!licenseAllocated) {
+        alert('Failed to reserve a license seat. The user has NOT been enrolled. Please check server logs or contact support.');
+        setAssigning(prev => ({ ...prev, [`${courseId}-${userId}`]: false }));
+        return;
+      }
+      
+      console.log('STEP 1 SUCCESS: License seat allocated.');
+
+      // --- STEP 2: ENROLL THE USER IN THE COURSE ---
+      // Now that the license is secured, give the user access to the course in Moodle.
+      console.log('STEP 2: Enrolling user in course...');
+      const userEnrolled = await coursesService.enrollUserInCourse(courseId, userId);
+
+      if (userEnrolled) {
+        // --- FINAL SUCCESS: BOTH STEPS WORKED ---
+        console.log('STEP 2 SUCCESS: User enrolled. Updating UI.');
+
+        // Update the UI to reflect the successful assignment.
+        // We can do an "optimistic update" first for a snappy user experience.
+        
+        // Move user from "Unassigned" to "Assigned" list in the UI
+        setEnrollments(prev => ({
+          ...prev,
+          [courseId]: [...(prev[courseId] || []), userId]
+        }));
+        
+        // Decrement the available license count in the UI
+        setLicenseInfo(prev => ({
+          ...prev,
+          [courseId]: {
+            ...prev[courseId],
+            used: prev[courseId].used + 1,
+            available: Math.max(0, prev[courseId].available - 1)
+          }
+        }));
+
+      } else {
+        // This is a critical error state that requires manual intervention.
+        // The license was consumed, but the enrollment failed.
+        alert('CRITICAL ERROR: A license was successfully consumed, but the user could not be enrolled in the course. Please contact support immediately to resolve this discrepancy.');
+        // Note: We don't roll back the UI license count here because a license WAS used.
+        // The UI should reflect the reality on the server.
+      }
+    } catch (error) {
+      console.error('An error occurred during the assignment process:', error);
+      alert('A critical error occurred. Please check the console and contact support.');
+    } finally {
+      // Stop the loading indicator for this specific user button.
+      setAssigning(prev => ({ ...prev, [`${courseId}-${userId}`]: false }));
+    }
   };
 
   const getAssignedUsers = (courseId: string) =>
@@ -121,6 +275,39 @@ export const AssignCourseToUsers: React.FC<AssignCourseToUsersProps> = ({ compan
           <h3 className="text-2xl font-bold text-blue-800 dark:text-blue-300 mb-6 pb-4 border-b border-gray-200">
             Managing: {courses.find(c => c.id === activeCourse)?.fullname}
           </h3>
+          
+          {/* License Status Display */}
+          {licenseInfo[activeCourse] && (
+            <div className="mb-6 p-4 bg-white rounded-xl border">
+              <div className="flex items-center gap-3 mb-3">
+                <Award className="w-6 h-6 text-blue-600" />
+                <h4 className="text-lg font-semibold text-gray-900">License Status</h4>
+              </div>
+              
+              {licenseInfo[activeCourse].hasLicense ? (
+                <div className="grid grid-cols-3 gap-4 mb-4">
+                  <div className="text-center p-3 bg-blue-50 rounded-lg">
+                    <div className="text-2xl font-bold text-blue-600">{licenseInfo[activeCourse].allocation}</div>
+                    <div className="text-sm text-blue-800">Total Licenses</div>
+                  </div>
+                  <div className="text-center p-3 bg-yellow-50 rounded-lg">
+                    <div className="text-2xl font-bold text-yellow-600">{licenseInfo[activeCourse].used}</div>
+                    <div className="text-sm text-yellow-800">Used</div>
+                  </div>
+                  <div className="text-center p-3 bg-green-50 rounded-lg">
+                    <div className="text-2xl font-bold text-green-600">{licenseInfo[activeCourse].available}</div>
+                    <div className="text-sm text-green-800">Available</div>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-800">
+                  <XCircle className="w-5 h-5" />
+                  <span className="font-medium">No License Assigned</span>
+                  <span className="text-sm ml-2">Contact administrator to assign licenses for this course.</span>
+                </div>
+              )}
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* Unassigned Users */}
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border">
@@ -145,10 +332,19 @@ export const AssignCourseToUsers: React.FC<AssignCourseToUsersProps> = ({ compan
                               size="sm"
                               variant="primary"
                               loading={assigning[activeCourse + '-' + user.id]}
+                              disabled={!licenseInfo[activeCourse]?.hasLicense || licenseInfo[activeCourse]?.isExpired || licenseInfo[activeCourse]?.available <= 0}
                               onClick={() => handleAssign(activeCourse, user.id)}
-                              className="bg-blue-600 hover:bg-blue-700"
+                              className={`${!licenseInfo[activeCourse]?.hasLicense || licenseInfo[activeCourse]?.isExpired || licenseInfo[activeCourse]?.available <= 0 
+                                ? 'bg-gray-400 cursor-not-allowed' 
+                                : 'bg-blue-600 hover:bg-blue-700'}`}
                             >
-                              Assign
+                              {!licenseInfo[activeCourse]?.hasLicense 
+                                ? 'No License' 
+                                : licenseInfo[activeCourse]?.isExpired 
+                                ? 'Expired' 
+                                : licenseInfo[activeCourse]?.available <= 0 
+                                ? 'Full' 
+                                : 'Assign'}
                           </Button>
                         </li>
                       ))}

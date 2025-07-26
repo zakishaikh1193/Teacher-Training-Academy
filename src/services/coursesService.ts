@@ -242,12 +242,18 @@ export const coursesService = {
     params.append('wstoken', IOMAD_TOKEN);
     params.append('wsfunction', 'block_iomad_company_admin_create_licenses');
     params.append('moodlewsrestformat', 'json');
+    
     // Required fields
     params.append('licenses[0][name]', `License for course ${courseId} in school ${schoolId}`);
     params.append('licenses[0][allocation]', String(licenseCount));
     params.append('licenses[0][validlength]', '0'); // 0 = unlimited days
     params.append('licenses[0][startdate]', '0'); // 0 = no start date
-    params.append('licenses[0][expirydate]', '0'); // 0 = no expiry
+    
+    // THE FIX: Instead of '0', use a far-future timestamp for non-expiring licenses
+    // Using 2147483647 which is January 19, 2038 (avoids Y2K38 issues on 32-bit systems)
+    const neverExpireTimestamp = 2147483647;
+    params.append('licenses[0][expirydate]', String(neverExpireTimestamp));
+    
     params.append('licenses[0][used]', '0');
     params.append('licenses[0][companyid]', String(schoolId));
     params.append('licenses[0][parentid]', '0');
@@ -258,11 +264,13 @@ export const coursesService = {
     params.append('licenses[0][clearonexpire]', '0');
     params.append('licenses[0][cutoffdate]', '0');
     params.append('licenses[0][courses][0][courseid]', String(courseId));
+    
+    console.log('Creating license with expiry date:', neverExpireTimestamp, '(Jan 19, 2038)');
     const response = await axios.post(IOMAD_BASE_URL, params);
     return response.data;
   },
 
-// Get license info for a course in a school
+// Get license info for a company (all licenses)
 async getCourseLicenseInfo(companyId: number, courseId: number): Promise<any> {
   const params = new URLSearchParams();
   params.append('wstoken', IOMAD_TOKEN);
@@ -270,10 +278,101 @@ async getCourseLicenseInfo(companyId: number, courseId: number): Promise<any> {
   params.append('moodlewsrestformat', 'json');
   params.append('criteria[0][key]', 'companyid');
   params.append('criteria[0][value]', String(companyId));
-  params.append('criteria[1][key]', 'courseid');
-  params.append('criteria[1][value]', String(courseId));
+  // Note: courseid is not supported as a filter parameter, so we get all company licenses
   const response = await axios.post(IOMAD_BASE_URL, params);
   return response.data;
+},
+
+/**
+ * Get license information by license ID
+ */
+async getLicenseInfoById(licenseId: number): Promise<any> {
+  try {
+    const params = new URLSearchParams();
+    params.append('wstoken', IOMAD_TOKEN);
+    params.append('wsfunction', 'block_iomad_company_admin_get_license_from_id');
+    params.append('moodlewsrestformat', 'json');
+    params.append('licenseid', String(licenseId));
+    
+    const response = await axios.post(IOMAD_BASE_URL, params);
+    return response.data || null;
+  } catch (error) {
+    console.error(`Error fetching license info for ID ${licenseId}:`, error);
+    return null;
+  }
+},
+
+/**
+ * Validate a license by getting its details from IOMAD
+ */
+async validateLicense(licenseId: number): Promise<boolean> {
+  try {
+    const licenseDetails = await this.getLicenseInfoById(licenseId);
+    
+    if (!licenseDetails || !licenseDetails.license) {
+      return false;
+    }
+    
+    const license = licenseDetails.license;
+    const now = Math.floor(Date.now() / 1000);
+    
+    // Check if license is expired (IOMAD treats expirydate: 0 as expired)
+    if (license.expirydate === 0 || (license.expirydate > 0 && license.expirydate < now)) {
+      return false;
+    }
+    
+    // Check if license has available slots
+    if (license.used >= license.allocation) {
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error(`Error validating license ${licenseId}:`, error);
+    return false;
+  }
+},
+
+
+/**
+ * Allocate licenses to users for courses
+ */
+async allocateLicenseToUser(licenseId: number, userId: number, courseId: number): Promise<boolean> {
+  try {
+    const params = new URLSearchParams();
+    // Remember to replace this with a dynamic user token in production
+    params.append('wstoken', IOMAD_TOKEN); 
+    params.append('wsfunction', 'block_iomad_company_admin_allocate_licenses');
+    params.append('moodlewsrestformat', 'json');
+    params.append('licenses[0][licenseid]', String(licenseId));
+    params.append('licenses[0][userid]', String(userId));
+    params.append('licenses[0][licensecourseid]', String(courseId));
+
+    console.log('STEP 1: Allocating license seat...', { licenseId, userId, courseId });
+
+    const response = await axios.post(IOMAD_BASE_URL, params, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    });
+
+    console.log('API Response for license allocation:', response.data);
+
+    // --- THE FIX IS HERE ---
+    // The API can return boolean `true` or the number `1`.
+    // Using `!!` correctly converts any "truthy" value to `true`.
+    const success = !!response.data;
+    
+    if (response.data && response.data.exception) {
+        console.error('API returned an exception during license allocation:', response.data);
+        return false;
+    }
+
+    console.log('Was license allocation successful?', success);
+    return success;
+
+  } catch (error) {
+    console.error('Network or other error during license allocation:', error);
+    return false;
+  }
 },
 
   /**
@@ -385,22 +484,31 @@ async getCompanyCourses(companyId: number): Promise<any[]> {
 },
 
   // Enroll a user in a course
-  async enrollUserInCourse(courseId: string, userId: string, roleId: number = 5): Promise<boolean> {
-    try {
-      const params = new URLSearchParams();
-      params.append('wstoken', IOMAD_TOKEN);
-      params.append('wsfunction', 'enrol_manual_enrol_users');
-      params.append('moodlewsrestformat', 'json');
-      params.append('enrolments[0][courseid]', courseId.toString());
-      params.append('enrolments[0][userid]', userId.toString());
-      params.append('enrolments[0][roleid]', roleId.toString());
-      const response = await axios.post(IOMAD_BASE_URL, params, {
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-      });
-      return response.data && !response.data.exception;
-    } catch (error) {
-      console.error('Error enrolling user in course:', error);
+async enrollUserInCourse(courseId: string, userId: string, roleId: number = 5): Promise<boolean> {
+  try {
+    const params = new URLSearchParams();
+    params.append('wstoken', IOMAD_TOKEN); // Use the same token
+    params.append('wsfunction', 'enrol_manual_enrol_users');
+    params.append('moodlewsrestformat', 'json');
+    params.append('enrolments[0][roleid]', String(roleId));
+    params.append('enrolments[0][userid]', userId);
+    params.append('enrolments[0][courseid]', courseId);
+
+    const response = await axios.post(IOMAD_BASE_URL, params, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    });
+
+    // A successful response is null or an empty array. An error response contains an 'exception' key.
+    if (response.data && response.data.exception) {
+      console.error('Moodle enrollment failed:', response.data);
       return false;
     }
+    
+    return true;
+
+  } catch (error) {
+    console.error('Error during Moodle course enrollment:', error);
+    return false;
   }
+},
 };
