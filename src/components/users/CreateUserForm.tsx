@@ -153,26 +153,27 @@ export const CreateUserForm: React.FC<CreateUserFormProps> = ({ onUserCreated })
       }
  
       const userId = userRes[0].id;
-      // Assign to school if selected
-      if (formData.school && userId) {
-        const selectedRole = roles.find(r => r.id.toString() === formData.role);
-        if (selectedRole?.shortname === 'school_admin') {
+      // Assign to school only for school_admin and other non-trainer roles
+      const selectedRole = roles.find(r => r.id.toString() === formData.role);
+      if (formData.school && userId && selectedRole) {
+        if (selectedRole.shortname === 'school_admin') {
           // 1. Assign to company as manager
           await usersService.assignUsersToSchool([
             { userid: parseInt(userId, 10), companyid: parseInt(formData.school, 10), managertype: 1 }
           ]);
-        } else if (formData.role && selectedRole) {
-        await usersService.assignUsersToSchool([
-          { userid: parseInt(userId, 10), companyid: parseInt(formData.school, 10), departmentid: 0, managertype: 0, educator: 0 }
-        ]);
-      }
-        // Assign role at system context (contextid = 1) for all roles
-        if (formData.role && selectedRole) {
-          await usersService.assignRoleViaWebService({
-            userid: userId,
-            roleid: parseInt(formData.role, 10)
-          });
+        } else if (selectedRole.shortname !== 'teachers') {
+          // Only assign to school if not a trainer (teachers)
+          await usersService.assignUsersToSchool([
+            { userid: parseInt(userId, 10), companyid: parseInt(formData.school, 10), departmentid: 0, managertype: 0, educator: 0 }
+          ]);
         }
+      }
+      // Assign role at system context (contextid = 1) for all roles
+      if (formData.role && selectedRole && userId) {
+        await usersService.assignRoleViaWebService({
+          userid: userId,
+          roleid: parseInt(formData.role, 10)
+        });
       }
       toast.success('User created and assigned successfully!');
       onUserCreated();

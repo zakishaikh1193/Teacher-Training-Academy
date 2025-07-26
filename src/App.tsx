@@ -22,7 +22,8 @@ import { useAuth } from './context/AuthContext';
 import TeacherDashboardRoutes from './components/routes/TeacherDashboardRoutes';
 import SchoolAdminDashboardPage from './components/pages/courses/SchoolAdminDashboardPage';
 import ClusterDashboard from './components/dashboards/clusterDashboard';
-import CourseViewerPage from './pages/CourseViewerPage'; // Import the new page
+import CourseViewerPage from './pages/CourseViewerPage';
+import { AssignTrainerToCoursePage } from './components/users/AssignTrainerToCoursePage';
  
 function DashboardRouteWrapper() {
   const { user, loading } = useAuth();
@@ -103,6 +104,14 @@ function App() {
                   }
                 />
                 <Route
+                  path="/courses-categories/*"
+                  element={
+                    <ProtectedRoute>
+                      <CourseCategoryRoutes />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
                   path="/users"
                   element={
                     <ProtectedRoute>
@@ -123,6 +132,14 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <SchoolAdminDashboardPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/assign-trainer-to-course"
+                  element={
+                    <ProtectedRoute>
+                      <AssignTrainerToCoursePage />
                     </ProtectedRoute>
                   }
                 />
