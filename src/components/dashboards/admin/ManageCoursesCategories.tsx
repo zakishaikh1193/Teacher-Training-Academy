@@ -27,6 +27,7 @@ import { LoadingSpinner } from '../../LoadingSpinner';
 import { Button } from '../../ui/Button';
 import { Input } from '../../ui/Input';
 import { coursesService } from '../../../services/coursesService';
+import { Link } from 'react-router-dom';
 
 interface CourseFeature {
   id: string;

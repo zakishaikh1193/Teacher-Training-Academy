@@ -12,9 +12,7 @@ export const TrainerAdminDashboardPage: React.FC = () => {
   // State
   const [categories, setCategories] = useState<any[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
-  const [allTrainers, setAllTrainers] = useState<UserType[]>([]); // For the right column
-  
-  // This map will hold the final, combined list of trainers for each course
+  const [allTrainers, setAllTrainers] = useState<UserType[]>([]);
   const [trainersByCourse, setTrainersByCourse] = useState<{ [courseId: string]: UserType[] }>({});
   
   const [loading, setLoading] = useState(true);
@@ -25,7 +23,7 @@ export const TrainerAdminDashboardPage: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        // Step 1: Get all base data
+        // Step 1: Get all base data in parallel
         const [categoriesData, coursesData, rolesData] = await Promise.all([
           coursesService.getAllCategories(),
           coursesService.getAllCourses(),
@@ -35,58 +33,48 @@ export const TrainerAdminDashboardPage: React.FC = () => {
         setCategories(categoriesData);
         setCourses(coursesData);
         
-        const teacherRole = rolesData.find(r => r.shortname === 'teachers');
-        if (!teacherRole) throw new Error("Could not find the 'teachers' role.");
-        const teacherRoleId = teacherRole.id;
+        // --- THIS IS THE KEY INSIGHT ---
+        // Step 2: Identify ALL roles that should be considered a "teacher" or "trainer".
+        // The mismatch was because we only looked for one role, but Moodle has several.
+        const teacherRoleShortnames = ['teachers', 'editingteacher', 'teacher'];
+        const teacherRoleIDs = new Set( // Use a Set for efficient lookups
+          rolesData
+            .filter(role => teacherRoleShortnames.includes(role.shortname))
+            .map(role => role.id)
+        );
+
+        if (teacherRoleIDs.size === 0) {
+          throw new Error("Could not find any teacher-like roles (teachers, editingteacher, teacher).");
+        }
         
-        // --- NEW RECONCILIATION LOGIC ---
+        // Step 3: Get the list of ALL users who have ANY of these teacher roles for the right-hand column.
+        const trainerPromises = Array.from(teacherRoleIDs).map(id => usersService.getUsersByRoleId(id));
+        const trainersByRole = await Promise.all(trainerPromises);
+        
+        const allTrainersMap = new Map<string, UserType>();
+        trainersByRole.flat().forEach(trainer => allTrainersMap.set(trainer.id, trainer));
+        setAllTrainers(Array.from(allTrainersMap.values()));
 
-        // Step 2A: Get users with the "Teacher" role at a system/category level.
-        // These are the "globally assigned" trainers who have access to many courses.
-        const globallyAssignedTrainers = await usersService.getUsersByRoleId(teacherRoleId);
-        setAllTrainers(globallyAssignedTrainers); // This list is also used for the right column.
-
-        // Step 2B: Get users who are *manually enrolled* in each course with the teacher role.
+        // Step 4: Fetch enrollments for EVERY course. This is the single source of truth.
+        // The System Admin token should see all users from all companies in this core function.
         const enrollmentPromises = coursesData.map(course => 
           coursesService.getCourseEnrollments(String(course.id))
         );
         const allEnrollments = await Promise.all(enrollmentPromises);
 
-        // Step 3: Combine the two lists to get the complete picture for each course.
-        const finalTrainersMap: { [courseId: string]: UserType[] } = {};
-
+        // Step 5: Process the enrollments, checking against our complete list of teacher role IDs.
+        const trainersMap: { [courseId: string]: UserType[] } = {};
         coursesData.forEach((course, index) => {
           const enrollmentsForCourse = allEnrollments[index];
           
-          // Get trainers manually enrolled in THIS specific course
-          const manuallyEnrolled = enrollmentsForCourse.filter(enrollment => 
-            enrollment.roles?.some((role: any) => role.roleid === teacherRoleId)
+          const assignedTrainers = enrollmentsForCourse.filter(enrollment => 
+            enrollment.roles?.some((role: any) => teacherRoleIDs.has(role.roleid))
           );
           
-          // This is a simplified approach: For this dashboard, we assume that any user with a system-level "Teacher" role
-          // could potentially teach any course. We merge them with the manually enrolled ones.
-          // A more complex check could filter global trainers by category, but this is a solid start.
-
-          // Create a combined list and remove duplicates
-          const combined = new Map<string, UserType>();
-          
-          // Add manually enrolled trainers first
-          manuallyEnrolled.forEach(trainer => combined.set(trainer.id.toString(), trainer));
-
-          // Then add globally assigned trainers (if they aren't already in the list)
-          globallyAssignedTrainers.forEach(trainer => {
-            // NOTE: A better check here would be `!combined.has(trainer.id) && trainer.categoryid === course.categoryid`
-            // if you have that data. For now, we add all global trainers to all courses for a complete view.
-            if (!combined.has(trainer.id.toString())) {
-              combined.set(trainer.id.toString(), trainer);
-            }
-          });
-
-          // Store the final, unique list of trainers for this course
-          finalTrainersMap[course.id] = Array.from(combined.values());
+          trainersMap[course.id] = assignedTrainers;
         });
         
-        setTrainersByCourse(finalTrainersMap);
+        setTrainersByCourse(trainersMap);
 
       } catch (err) {
         console.error("Failed to load trainer dashboard data:", err);
@@ -98,7 +86,6 @@ export const TrainerAdminDashboardPage: React.FC = () => {
     fetchData();
   }, []);
 
-  // useMemo for categorizing courses remains the same
   const coursesByCategory = useMemo(() => {
     if (!categories.length || !courses.length) return [];
     
@@ -108,7 +95,8 @@ export const TrainerAdminDashboardPage: React.FC = () => {
     }));
   }, [categories, courses]);
 
-
+  // The JSX for rendering the component remains exactly the same.
+  // The fix was purely in the data fetching logic.
   if (loading) {
     return (
       <div className="flex justify-center items-center p-10">
@@ -122,13 +110,12 @@ export const TrainerAdminDashboardPage: React.FC = () => {
     return <div className="p-6 bg-red-100 text-red-800 rounded-lg">{error}</div>;
   }
 
-  // The JSX remains identical to your last version. The changes were all in the data fetching.
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center pb-4 border-b">
         <div>
           <h2 className="text-2xl font-bold">Trainer Management</h2>
-          <p className="text-gray-600">Overview of all trainers, courses, and categories.</p>
+          <p className="text-gray-600">Platform-wide overview of courses and their assigned trainers.</p>
         </div>
         <Button 
           onClick={() => navigate('/assign-trainer-to-course')} 

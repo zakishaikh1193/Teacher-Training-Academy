@@ -24,6 +24,7 @@ import SchoolAdminDashboardPage from './components/pages/courses/SchoolAdminDash
 import ClusterDashboard from './components/dashboards/clusterDashboard';
 import CourseViewerPage from './pages/CourseViewerPage';
 import { AssignTrainerToCoursePage } from './components/users/AssignTrainerToCoursePage';
+import { ManageCourseGroupsPage } from './pages/ManageCourseGroupsPage';
  
 function DashboardRouteWrapper() {
   const { user, loading } = useAuth();
@@ -152,6 +153,8 @@ function App() {
                   }
                 />
                 <Route path="/course/:courseId/view" element={<ProtectedRoute><CourseViewerPage /></ProtectedRoute>} />
+
+                <Route path="/course/groups/:courseId" element={<ManageCourseGroupsPage />} />
 
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
