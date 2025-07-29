@@ -227,7 +227,7 @@ const handleAssign = async (courseId: string, userId: string) => {
   );
 
   return (
-    <div className="max-w-6xl mx-auto py-8 px-4">
+    <div className="w-full min-h-screen py-8 px-4">
       <div className="flex items-center mb-6">
         {onBack && (
           <Button variant="ghost" onClick={onBack} className="mr-4 hover:bg-gray-100 p-2 rounded-full">

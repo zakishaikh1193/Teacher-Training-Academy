@@ -66,15 +66,11 @@ export const ManageCourseGroupsPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto py-8 px-4">
+    <div className="w-full min-h-screen">
       <div className="flex items-center gap-4 mb-8">
-        <Button variant="ghost" onClick={() => navigate(-1)}>
-            <ArrowLeft className="w-4 h-4 mr-2" /> Back
-        </Button>
-        <div>
-            <h1 className="text-3xl font-bold text-gray-800">Manage Course Groups</h1>
-            <p className="text-gray-500">Create and view groups to manage content visibility and user cohorts.</p>
-        </div>
+        {/* Removed back button as per new navigation policy */}
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Manage Course Groups</h1>
+        <p className="text-gray-500">Create and view groups to manage content visibility and user cohorts.</p>
       </div>
 
       <div className="bg-white rounded-xl shadow-md border p-6">

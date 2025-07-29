@@ -7,22 +7,10 @@ export const TeachingLocationsPage: React.FC = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="space-y-6">
+    <div className="w-full min-h-screen">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={() => navigate('/courses-categories')}>
-            <ArrowLeft className="w-4 h-4" />
-            Back to Courses & Categories
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              Teaching Locations
-            </h1>
-            <p className="text-gray-600 dark:text-gray-300">
-              Manage physical and virtual teaching locations
-            </p>
-          </div>
-        </div>
+        {/* Removed back button as per new navigation policy */}
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Teaching Locations</h1>
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">

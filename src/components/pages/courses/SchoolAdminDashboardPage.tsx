@@ -1434,7 +1434,13 @@ const CoursesManagementSection = () => {
         </>
       )}
       {activeTab === 'create' && user?.company && (
-        <AssignCourseToUsers companyId={Number(user.company)} />
+        <AssignCourseToUsers 
+          companyId={Number(user.company)} 
+          onBack={() => {
+            console.log('Back button clicked, navigating to:', '/dashboard?section=courses-categories');
+            window.location.href = '/dashboard?section=courses-categories';
+          }}
+        />
       )}
       {activeTab === 'bulk' && (
         <div className="w-full bg-white rounded-2xl shadow p-6">

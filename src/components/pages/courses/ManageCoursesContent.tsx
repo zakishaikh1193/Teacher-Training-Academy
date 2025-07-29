@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { coursesService } from '../../../services/coursesService';
 import { Button } from '../../ui/Button';
-import { BookOpen, ChevronRight, ChevronDown, ChevronUp, Image as ImageIcon } from 'lucide-react';
+import { BookOpen, ChevronRight, ChevronDown, ChevronUp, Image as ImageIcon, ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface Course {
@@ -46,10 +46,13 @@ const ManageCoursesContent: React.FC = () => {
   if (error) return <div className="flex justify-center items-center min-h-96 text-red-600 text-lg">{error}</div>;
 
   return (
-    <div className="max-w-5xl mx-auto py-8">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-        <BookOpen className="w-7 h-7 text-blue-600" /> Manage Courses Content
-      </h1>
+    <div className="w-full min-h-screen">
+      <div className="flex items-center gap-4 mb-6">
+        {/* Removed back button as per new navigation policy */}
+        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+          <BookOpen className="w-7 h-7 text-blue-600" /> Manage Courses Content
+        </h1>
+      </div>
       <div className="space-y-4">
         {categories.map(category => {
           const categoryCourses = courses.filter(c => c.categoryid === category.id);
@@ -109,7 +112,8 @@ const ManageCoursesContent: React.FC = () => {
                               onClick={() => {
                                 console.log('Navigating to manage content for course:', course);
                                 if (course.id && course.id !== 'undefined' && course.id !== '') {
-                                  navigate(`/courses-categories/manage-content/${course.id}`);
+                                  // Navigate to standalone course timeline page
+                                  window.location.href = `/course-timeline/${course.id}`;
                                 } else {
                                   alert('Invalid course ID. Cannot navigate to manage content.');
                                 }

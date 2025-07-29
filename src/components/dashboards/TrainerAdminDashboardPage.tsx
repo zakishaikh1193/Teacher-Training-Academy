@@ -192,7 +192,7 @@ export const TrainerAdminDashboardPage: React.FC = () => {
           <p className="text-gray-600">Platform-wide overview of courses and their assigned trainers.</p>
         </div>
         <Button 
-          onClick={() => navigate('/assign-trainer-to-course')} 
+          onClick={() => window.location.href = '/dashboard?section=assign-trainer'} 
           className="bg-blue-600 text-white"
         >
           Assign Course to Trainer

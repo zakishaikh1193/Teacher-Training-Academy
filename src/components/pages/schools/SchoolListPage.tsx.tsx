@@ -33,7 +33,7 @@ const SchoolListPage: React.FC = () => {
   }
  
   return (
-    <div className="max-w-3xl mx-auto py-8">
+    <div className="w-full min-h-screen py-8 px-4">
       <h1 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Schools/Companies</h1>
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
@@ -53,7 +53,7 @@ const SchoolListPage: React.FC = () => {
                   <button
                     className="inline-flex items-center px-2 py-1 text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-200 focus:outline-none"
                     title="Edit"
-                    onClick={() => navigate(`/school/edit/${school.id}`)}
+                    onClick={() => window.location.href = `/dashboard?section=edit-school&schoolId=${school.id}`}
                   >
                     <Pencil className="w-5 h-5" />
                   </button>
