@@ -1,15 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { schoolsService } from '../../../services/schoolsService';
+import { coursesService } from '../../../services/coursesService'; 
 import { Button } from '../../ui/Button';
-import { Plus, FileText, Link, Loader2, Upload, BookOpen, Tag, PlusCircle, Edit, Trash2, ChevronDown, Eye, EyeOff, Image as ImageIcon } from 'lucide-react';
+import { Plus, Users, FileText, Link, Loader2, Upload, BookOpen, Tag, PlusCircle, Edit, Trash2, ChevronDown, Eye, EyeOff, Image as ImageIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getCourseContents } from '../../../services/apiService';
 import * as contentBuilderService from '../../../services/contentBuilderService';
 import DOMPurify from 'dompurify';
-import axios from 'axios'; // Import axios directly
+import axios from 'axios';
 
-
+// --- Interfaces ---
 interface ContentModule {
   id: number;
   name: string;
@@ -30,6 +31,7 @@ interface CourseSection {
     modules: ContentModule[];
 }
 
+// --- ModuleDisplay Sub-Component ---
 const ModuleDisplay: React.FC<{ module: ContentModule; onDelete: () => void; onUpdate: (newName: string) => void; }> = ({ module, onDelete, onUpdate }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -50,12 +52,10 @@ const ModuleDisplay: React.FC<{ module: ContentModule; onDelete: () => void; onU
 
     useEffect(() => {
         let objectUrl: string | null = null;
-
         const fetchImage = async () => {
             if (isImage && module.mainUrl && isExpanded) {
                 setIsLoadingImage(true);
                 try {
-                    // Use a direct axios call to avoid sending the Authorization header
                     const response = await axios.get(module.mainUrl, {
                         responseType: 'blob',
                         params: { token: '4a2ba2d6742afc7d13ce4cf486ba7633' }
@@ -70,16 +70,13 @@ const ModuleDisplay: React.FC<{ module: ContentModule; onDelete: () => void; onU
                 }
             }
         };
-
         fetchImage();
-
         return () => {
             if (objectUrl) {
                 URL.revokeObjectURL(objectUrl);
             }
         };
     }, [isImage, module.mainUrl, isExpanded]);
-
 
     return (
         <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3 transition-shadow shadow-sm hover:shadow-md">
@@ -106,11 +103,9 @@ const ModuleDisplay: React.FC<{ module: ContentModule; onDelete: () => void; onU
                     >
                         {module.pagecontent && <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(module.pagecontent) }} />}
                         {module.renderedContent && <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(module.renderedContent) }} />}
-                        
                         {isImage && isLoadingImage && <div className="flex items-center gap-2 text-gray-500"><Loader2 className="w-4 h-4 animate-spin" /><span>Loading image...</span></div>}
                         {isImage && !isLoadingImage && imageUrl && <img src={imageUrl} alt={module.fileName} className="max-w-full h-auto rounded-md border" />}
                         {isImage && !isLoadingImage && !imageUrl && <div className="flex items-center gap-2 text-red-500"><ImageIcon className="w-4 h-4" /><span>Could not load image.</span></div>}
-
                         {module.modname === 'url' && module.mainUrl && <a href={module.mainUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Open Link: {module.mainUrl}</a>}
                     </motion.div>
                 )}
@@ -119,6 +114,7 @@ const ModuleDisplay: React.FC<{ module: ContentModule; onDelete: () => void; onU
     );
 };
 
+// --- Main Page Component ---
 const ManageCourseContentPage: React.FC = () => {
   const { courseId } = useParams<{ courseId: string }>();
   const [sections, setSections] = useState<CourseSection[]>([]);
@@ -155,39 +151,53 @@ const ManageCourseContentPage: React.FC = () => {
   const [batchJson, setBatchJson] = useState('');
   const [batchError, setBatchError] = useState<string | null>(null);
 
-  // --- NEW State for Edit/Delete ---
   const [showConfirmDeleteModal, setShowConfirmDeleteModal] = useState< {type: 'section' | 'activity', id: number} | null >(null);
   const [showEditSectionModal, setShowEditSectionModal] = useState<CourseSection | null>(null);
   const [showEditActivityModal, setShowEditActivityModal] = useState<ContentModule | null>(null);
   const [editName, setEditName] = useState('');
   const [editSummary, setEditSummary] = useState('');
 
-  // --- NEW State for Assignment ---
   const [assignmentDueDate, setAssignmentDueDate] = useState('');
   const [assignmentCutoffDate, setAssignmentCutoffDate] = useState('');
   const [assignmentMaxGrade, setAssignmentMaxGrade] = useState(100);
-
+  
+  const [roles, setRoles] = useState<any[]>([]);
+  const [selectedRoleVisibility, setSelectedRoleVisibility] = useState<number[]>([]);
 
   useEffect(() => {
-    fetchContent();
-    // eslint-disable-next-line
+    const loadInitialData = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const [sectionData, rolesData] = await Promise.all([
+                getCourseContents(courseId!),
+                coursesService.getAvailableRoles()
+            ]);
+            setSections(sectionData);
+            setRoles(rolesData);
+        } catch (err: any) {
+            setError(err.message || 'Failed to fetch initial page data');
+        } finally {
+            setLoading(false);
+        }
+    };
+    if (courseId) {
+        loadInitialData();
+    }
   }, [courseId]);
 
   const fetchContent = async () => {
-    setLoading(true);
-    setError(null);
     try {
       const sectionData = await getCourseContents(courseId!);
       setSections(sectionData);
     } catch (err: any) {
-      setError(err.message || 'Failed to fetch course content');
-    } finally {
-      setLoading(false);
+      setError(err.message || 'Failed to refresh course content');
     }
   };
 
   const handleOpenAddModal = (sectionNumber: number) => {
     setCurrentSection(sectionNumber);
+    setSelectedRoleVisibility([]);
     setShowAddModal(true);
   };
   
@@ -195,65 +205,75 @@ const ManageCourseContentPage: React.FC = () => {
     e.preventDefault();
     setSubmitting(true);
     setError(null);
+
     try {
+      let modname: ActivityType = addType;
+      let activityName: string = '';
+      let options: { name: string, value: any }[] = [];
+      
       if (addType === 'resource') {
         if (!file || !fileTitle) throw new Error('File and title are required');
         const uploaded = await schoolsService.uploadFile(file);
         if (!uploaded || !uploaded.itemid) throw new Error('File upload failed');
-        await contentBuilderService.addActivity(Number(courseId), currentSection, 'resource', fileTitle, [
-          { name: 'description', value: fileDesc },
-          { name: 'files', value: uploaded.itemid },
-        ]);
+        activityName = fileTitle;
+        options.push({ name: 'description', value: fileDesc });
+        options.push({ name: 'files', value: uploaded.itemid });
       } else if (addType === 'page') {
         if (!pageTitle || !pageContent) throw new Error('Title and content are required');
-        await contentBuilderService.addActivity(Number(courseId), currentSection, 'page', pageTitle, [
-          { name: 'content', value: pageContent },
-          { name: 'contentformat', value: 1 }
-        ]);
+        activityName = pageTitle;
+        options.push({ name: 'content', value: pageContent });
+        options.push({ name: 'contentformat', value: 1 });
       } else if (addType === 'url') {
         if (!urlTitle || !urlValue) throw new Error('Title and URL are required');
-        await contentBuilderService.addActivity(Number(courseId), currentSection, 'url', urlTitle, [
-          { name: 'description', value: urlDesc },
-          { name: 'externalurl', value: urlValue },
-        ]);
+        activityName = urlTitle;
+        options.push({ name: 'description', value: urlDesc });
+        options.push({ name: 'externalurl', value: urlValue });
       } else if (addType === 'folder') {
         if (!folderFiles.length || !fileTitle) throw new Error('At least one file and a title are required');
-        const uploaded = await schoolsService.uploadFile(folderFiles[0]); // Moodle needs a draft itemid
-        await contentBuilderService.addActivity(Number(courseId), currentSection, 'folder', fileTitle, [
-          { name: 'description', value: fileDesc },
-          { name: 'files', value: uploaded.itemid },
-        ]);
+        const uploaded = await schoolsService.uploadFile(folderFiles[0]);
+        activityName = fileTitle;
+        options.push({ name: 'description', value: fileDesc });
+        options.push({ name: 'files', value: uploaded.itemid });
       } else if (addType === 'scorm') {
         if (!scormFile || !scormTitle) throw new Error('SCORM file and title are required');
         const uploaded = await schoolsService.uploadFile(scormFile);
         if (!uploaded || !uploaded.itemid) throw new Error('SCORM upload failed');
-        await contentBuilderService.addActivity(Number(courseId), currentSection, 'scorm', scormTitle, [
-          { name: 'description', value: scormDesc },
-          { name: 'files', value: uploaded.itemid },
-        ]);
+        activityName = scormTitle;
+        options.push({ name: 'description', value: scormDesc });
+        options.push({ name: 'files', value: uploaded.itemid });
       } else if (addType === 'assignment') {
         if (!assignmentTitle) throw new Error('Assignment title is required');
-        // Convert datetime-local to Unix timestamp (seconds)
+        activityName = assignmentTitle;
         const duedate = assignmentDueDate ? Math.floor(new Date(assignmentDueDate).getTime() / 1000) : 0;
         const cutoffdate = assignmentCutoffDate ? Math.floor(new Date(assignmentCutoffDate).getTime() / 1000) : 0;
-        await contentBuilderService.addActivity(Number(courseId), currentSection, 'assign', assignmentTitle, [
-          { name: 'description', value: assignmentDesc },
-          { name: 'duedate', value: duedate },
-          { name: 'cutoffdate', value: cutoffdate },
-          { name: 'grade', value: assignmentMaxGrade },
-        ]);
+        options.push({ name: 'description', value: assignmentDesc });
+        options.push({ name: 'duedate', value: duedate });
+        options.push({ name: 'cutoffdate', value: cutoffdate });
+        options.push({ name: 'grade', value: assignmentMaxGrade });
       } else if (addType === 'quiz') {
         if (!quizTitle) throw new Error('Quiz title is required');
-        await contentBuilderService.addActivity(Number(courseId), currentSection, 'quiz', quizTitle, [
-          { name: 'description', value: quizDesc },
-        ]);
+        activityName = quizTitle;
+        options.push({ name: 'description', value: quizDesc });
       } else if (addType === 'label') {
         if (!labelText) throw new Error('Label text is required');
-        await contentBuilderService.addActivity(Number(courseId), currentSection, 'label', labelText, []);
+        activityName = labelText;
       }
-      
+
+        if (selectedRoleVisibility.length > 0) {
+        const availabilityCondition = {
+          'op': '|',
+          'c': selectedRoleVisibility.map(roleId => ({ 'type': 'role', 'id': roleId })),
+          'showc': selectedRoleVisibility.map(() => true),
+          // --- THE FIX ---
+          // The 'show' property must be a boolean `true`, not the number `1`.
+          'show': true 
+        };
+        options.push({ name: 'availability', value: JSON.stringify(availabilityCondition) });
+      }
+
+      await contentBuilderService.addActivity(Number(courseId), currentSection, modname, activityName, options);
+
       setShowAddModal(false);
-      // Reset all form states
       setFile(null); setFileTitle(''); setFileDesc('');
       setPageTitle(''); setPageContent('');
       setUrlTitle(''); setUrlValue(''); setUrlDesc('');
@@ -263,7 +283,8 @@ const ManageCourseContentPage: React.FC = () => {
       setQuizTitle(''); setQuizDesc('');
       setScormFile(null); setScormTitle(''); setScormDesc('');
       setAssignmentDueDate(''); setAssignmentCutoffDate(''); setAssignmentMaxGrade(100);
-      fetchContent();
+      setSelectedRoleVisibility([]);
+      await fetchContent();
     } catch (err: any) {
       setError(err.message || 'Failed to add content');
     } finally {
@@ -280,7 +301,7 @@ const ManageCourseContentPage: React.FC = () => {
       setShowSectionModal(false);
       setNewSectionName('');
       setNewSectionSummary('');
-      fetchContent();
+      await fetchContent();
     } catch (err: any) {
       setError(err.message || 'Failed to create section');
     } finally {
@@ -296,7 +317,7 @@ const ManageCourseContentPage: React.FC = () => {
       await contentBuilderService.batchImport(Number(courseId), JSON.parse(batchJson));
       setShowBatchModal(false);
       setBatchJson('');
-      fetchContent();
+      await fetchContent();
     } catch (err: any) {
       setBatchError(err.message || 'Failed to batch import');
     } finally {
@@ -304,10 +325,8 @@ const ManageCourseContentPage: React.FC = () => {
     }
   };
 
-  // --- NEW Edit/Delete Handlers ---
   const handleDelete = async () => {
       if (!showConfirmDeleteModal) return;
-
       setSubmitting(true);
       setError(null);
       try {
@@ -317,7 +336,7 @@ const ManageCourseContentPage: React.FC = () => {
               await contentBuilderService.deleteActivity(showConfirmDeleteModal.id);
           }
           setShowConfirmDeleteModal(null);
-          fetchContent(); // Refresh the list
+          await fetchContent();
       } catch (err: any) {
           setError(err.message || `Failed to delete ${showConfirmDeleteModal.type}`);
       } finally {
@@ -328,13 +347,12 @@ const ManageCourseContentPage: React.FC = () => {
   const handleUpdateSection = async (e: React.FormEvent) => {
       e.preventDefault();
       if (!showEditSectionModal) return;
-
       setSubmitting(true);
       setError(null);
       try {
           await contentBuilderService.updateSection(showEditSectionModal.id, editName, editSummary);
           setShowEditSectionModal(null);
-          fetchContent();
+          await fetchContent();
       } catch (err: any) {
           setError(err.message || 'Failed to update section');
       } finally {
@@ -345,17 +363,12 @@ const ManageCourseContentPage: React.FC = () => {
   const handleUpdateActivity = async (e: React.FormEvent) => {
       e.preventDefault();
       if (!showEditActivityModal) return;
-
       setSubmitting(true);
       setError(null);
       try {
-          // --- DEBUG LOGGING ADDED ---
-          console.log('Attempting to update activity. Cmid:', showEditActivityModal.id, 'New Name:', editName);
-          // --- END DEBUG LOGGING ---
-          
           await contentBuilderService.updateActivity(showEditActivityModal.id, editName);
           setShowEditActivityModal(null);
-          fetchContent();
+          await fetchContent();
       } catch (err: any) {
           setError(err.message || 'Failed to update activity');
       } finally {
@@ -374,7 +387,6 @@ const ManageCourseContentPage: React.FC = () => {
       setEditName(module.name);
   };
 
-  
   const activityTypes = [
     { value: 'resource', label: 'File' },
     { value: 'page', label: 'Page' },
@@ -452,11 +464,11 @@ const ManageCourseContentPage: React.FC = () => {
         </div>
       )}
 
-      {/* MODALS: Add Content, Add Section, Batch Import */}
+      {/* MODAL: Add Content */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 w-full max-w-md relative max-h-[90vh] overflow-y-auto">
-            <button className="absolute top-3 right-3 text-gray-400 hover:text-gray-700" onClick={() => setShowAddModal(false)}>&times;</button>
+            <button className="absolute top-3 right-3 text-gray-400 hover:text-gray-700" onClick={() => setShowAddModal(false)}>×</button>
             <h2 className="text-xl font-bold mb-4">Add Activity</h2>
             <form onSubmit={handleAddContent} className="space-y-4">
               <div>
@@ -521,6 +533,29 @@ const ManageCourseContentPage: React.FC = () => {
                   <div><label className="block font-medium mb-1">Text / Media</label><textarea value={labelText} onChange={e => setLabelText(e.target.value)} className="w-full border rounded px-3 py-2" /></div>
                 </>
               )}
+              <div className="border-t pt-4">
+                <label className="block font-medium mb-1 flex items-center gap-2">
+                  <Users className="w-4 h-4 text-gray-500" />
+                  Visible To (Optional)
+                </label>
+                <select
+                  multiple
+                  value={selectedRoleVisibility.map(String)}
+                  onChange={(e) => 
+                    setSelectedRoleVisibility(Array.from(e.target.selectedOptions, option => Number(option.value)))
+                  }
+                  className="w-full border rounded px-3 py-2 bg-white dark:bg-gray-800"
+                  size={5}
+                >
+                  {roles.map(role => (
+                    <option key={role.id} value={role.id}>{role.name}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  Hold Ctrl/Cmd to select multiple roles. If none are selected, it's visible to all.
+                </p>
+              </div>
+
               {error && <div className="text-red-600 text-sm mt-2 p-2 bg-red-50 rounded-md">{error}</div>}
               <Button type="submit" disabled={submitting} className="w-full mt-4">
                 {submitting ? <Loader2 className="animate-spin w-4 h-4 mr-2 inline" /> : <PlusCircle className="w-4 h-4 mr-2 inline" />} Add Activity
@@ -532,7 +567,7 @@ const ManageCourseContentPage: React.FC = () => {
       {showSectionModal && (
         <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 w-full max-w-md relative">
-            <button className="absolute top-3 right-3 text-gray-400 hover:text-gray-700" onClick={() => setShowSectionModal(false)}>&times;</button>
+            <button className="absolute top-3 right-3 text-gray-400 hover:text-gray-700" onClick={() => setShowSectionModal(false)}>×</button>
             <h2 className="text-xl font-bold mb-4">Create New Section</h2>
             <form onSubmit={handleCreateSection} className="space-y-4">
               <div>
@@ -551,7 +586,7 @@ const ManageCourseContentPage: React.FC = () => {
       {showBatchModal && (
         <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 w-full max-w-lg relative">
-            <button className="absolute top-3 right-3 text-gray-400 hover:text-gray-700" onClick={() => setShowBatchModal(false)}>&times;</button>
+            <button className="absolute top-3 right-3 text-gray-400 hover:text-gray-700" onClick={() => setShowBatchModal(false)}>×</button>
             <h2 className="text-xl font-bold mb-4">Batch Import Content</h2>
             <form onSubmit={handleBatchImport} className="space-y-4">
               <div>
@@ -569,7 +604,7 @@ const ManageCourseContentPage: React.FC = () => {
       {showEditSectionModal && (
         <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 w-full max-w-md relative">
-            <button className="absolute top-3 right-3 text-gray-400 hover:text-gray-700" onClick={() => setShowEditSectionModal(null)}>&times;</button>
+            <button className="absolute top-3 right-3 text-gray-400 hover:text-gray-700" onClick={() => setShowEditSectionModal(null)}>×</button>
             <h2 className="text-xl font-bold mb-4">Edit Section</h2>
             <form onSubmit={handleUpdateSection} className="space-y-4">
               <div>
@@ -591,7 +626,7 @@ const ManageCourseContentPage: React.FC = () => {
       {showEditActivityModal && (
         <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 w-full max-w-md relative">
-            <button className="absolute top-3 right-3 text-gray-400 hover:text-gray-700" onClick={() => setShowEditActivityModal(null)}>&times;</button>
+            <button className="absolute top-3 right-3 text-gray-400 hover:text-gray-700" onClick={() => setShowEditActivityModal(null)}>×</button>
             <h2 className="text-xl font-bold mb-4">Edit Activity</h2>
             <form onSubmit={handleUpdateActivity} className="space-y-4">
               <div>
@@ -626,4 +661,4 @@ const ManageCourseContentPage: React.FC = () => {
   );
 };
 
-export default ManageCourseContentPage; 
+export default ManageCourseContentPage;

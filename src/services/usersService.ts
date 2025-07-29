@@ -821,5 +821,56 @@ export const usersService = {
       events = response.data.data.events;
     }
     return events;
+  },
+
+/**
+ * Fetches all users and filters them to find those with a specific role.
+ * This is a workaround as there is no direct "get users by role" function available.
+ * @param roleId The numeric ID of the role to filter by.
+ * @returns {Promise<User[]>} An array of user objects with the specified role.
+ */
+async getUsersByRoleId(roleId: number): Promise<User[]> {
+  try {
+    // Step 1: Get all users from the system
+    const allUsers = await this.getAllUsers(); // Assuming you have a getAllUsers function
+
+    // Step 2: Create an array of promises to check the role of each user
+    const userRoleChecks = allUsers.map(async (user) => {
+      try {
+        const rolesResponse = await api.get('', {
+          params: {
+            wsfunction: 'local_intelliboard_get_users_roles',
+            'data[courseid]': 0, // System-level roles
+            'data[userid]': user.id,
+            'data[checkparentcontexts]': 1,
+          },
+        });
+
+        if (rolesResponse.data && typeof rolesResponse.data.data === 'string') {
+          const parsedRoles = JSON.parse(rolesResponse.data.data);
+          // parsedRoles is an object like { '3': 'Teacher', '5': 'Student' }
+          const userRoleIds = Object.keys(parsedRoles).map(id => parseInt(id, 10));
+          
+          // Check if the user has the role we're looking for
+          if (userRoleIds.includes(roleId)) {
+            return user; // If they do, return the user object
+          }
+        }
+      } catch (e) {
+        // Ignore errors for individual user role checks
+      }
+      return null; // If they don't have the role, or if there's an error, return null
+    });
+
+    // Step 3: Wait for all the checks to complete
+    const results = await Promise.all(userRoleChecks);
+
+    // Step 4: Filter out the null results to get only the users with the correct role
+    return results.filter((user): user is User => user !== null);
+
+  } catch (error) {
+    console.error(`Error fetching users for role ID ${roleId}:`, error);
+    throw new Error('Failed to fetch users by role');
   }
+},
 };
