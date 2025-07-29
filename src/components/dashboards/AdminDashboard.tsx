@@ -50,7 +50,9 @@ import { SchoolGroupsPage } from '../pages/courses/SchoolGroupsPage';
 import { AssignCourseGroupsPage } from '../pages/courses/AssignCourseGroupsPage';
 import { TeachingLocationsPage } from '../pages/courses/TeachingLocationsPage';
 import { LearningPathsPage } from '../pages/courses/LearningPathsPage';
+import AnalyticsPage from '../../pages/AnalyticsPage';
 import TrainerAdminDashboardPage from './TrainerAdminDashboardPage';
+
 
 interface AdminStats {
   totalUsers: number;
@@ -639,8 +641,6 @@ export const AdminDashboard: React.FC = () => {
         return <UsersDashboard />;
       case 'courses-categories':
         return <ManageCoursesCategories onSectionChange={setActiveSection} />;
-      case 'courses-programs':
-        return <ManageCoursesCategories onSectionChange={setActiveSection} />;
       case 'add-category':
         return <AddCategoryPage />;
       case 'user-enrolments':
@@ -686,8 +686,14 @@ export const AdminDashboard: React.FC = () => {
         );
       case 'user-management':
         return <UsersDashboard />;
+
+      case 'courses-programs':
+        return <ManageCoursesCategories onSectionChange={(section) => setActiveSection(section)} />;
+      case 'analytics':
+        return <AnalyticsPage />;
       case 'teachers':
         return <TrainerAdminDashboardPage />;
+
       default:
         return (
           <div className="bg-white rounded-xl shadow-lg p-6">
