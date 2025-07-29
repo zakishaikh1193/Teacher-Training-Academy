@@ -7,21 +7,14 @@ export const SchoolGroupsPage: React.FC = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="space-y-6">
+    <div className="w-full min-h-screen">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={() => navigate('/courses-categories')}>
-            <ArrowLeft className="w-4 h-4" />
-            Back to Courses & Categories
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              Manage School Groups
-            </h1>
-            <p className="text-gray-600 dark:text-gray-300">
-              Create and manage groups within schools
-            </p>
-          </div>
+          {/* Removed back button as per new navigation policy */}
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">School Groups</h1>
+          <p className="text-gray-600 dark:text-gray-300">
+            Create and manage groups within schools
+          </p>
         </div>
       </div>
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Save, X, Upload } from 'lucide-react';
 import { Button } from '../../ui/Button';
@@ -13,22 +13,24 @@ import { toast } from '../../ui/Toaster';
 export const EditSchoolPage: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { id } = useParams<{ id: string }>();
+  const location = useLocation();
+  const urlParams = new URLSearchParams(location.search);
+  const schoolId = urlParams.get('schoolId');
   const [school, setSchool] = useState<Partial<School> | null>(null);
   const [loading, setLoading] = useState(true);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [faviconFile, setFaviconFile] = useState<File | null>(null);
  
-  useEffect(() => {
+    useEffect(() => {
     const fetchSchoolData = async () => {
-      if (id) {
+      if (schoolId) {
         try {
-          const currentSchool = await schoolsService.getSchoolById(parseInt(id));
+          const currentSchool = await schoolsService.getSchoolById(parseInt(schoolId));
           if (currentSchool) {
             setSchool(currentSchool);
           } else {
-            toast.error(`School with ID ${id} not found.`);
-            navigate('/school');
+            toast.error(`School with ID ${schoolId} not found.`);
+            window.location.href = '/dashboard?section=schools';
           }
         } catch (error) {
           console.error('Failed to fetch school data', error);
@@ -37,9 +39,9 @@ export const EditSchoolPage: React.FC = () => {
       }
       setLoading(false);
     };
- 
+
     fetchSchoolData();
-  }, [id, navigate]);
+  }, [schoolId, navigate]);
  
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (school) {
@@ -59,20 +61,20 @@ export const EditSchoolPage: React.FC = () => {
     }
   };
  
-  const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!id || !school) return;
- 
+    if (!schoolId || !school) return;
+
     try {
       await schoolsService.updateSchool(
-        parseInt(id),
+        parseInt(schoolId),
         school,
         logoFile || undefined,
         faviconFile || undefined
       );
- 
+
       toast.success('School updated successfully!');
-      navigate('/school');
+      window.location.href = '/dashboard?section=schools';
     } catch (error) {
       console.error('Failed to update school', error);
       toast.error('Failed to update school.');
@@ -108,10 +110,10 @@ export const EditSchoolPage: React.FC = () => {
           </Button>
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              {id ? 'Edit School' : 'View School'}
+              {schoolId ? 'Edit School' : 'View School'}
             </h1>
             <p className="text-gray-600 dark:text-gray-300">
-              {id ? 'Modify school information' : 'View school details'}
+              {schoolId ? 'Modify school information' : 'View school details'}
             </p>
           </div>
         </div>
@@ -193,7 +195,7 @@ export const EditSchoolPage: React.FC = () => {
         </div>
  
         <div className="mt-6 flex justify-end gap-4">
-          <Button type="button" variant="outline" onClick={() => navigate('/school')}>
+          <Button type="button" variant="outline" onClick={() => window.location.href = '/dashboard?section=schools'}>
             <X className="w-4 h-4 mr-2" />
             Cancel
           </Button>
