@@ -7,21 +7,14 @@ export const AssignCourseGroupsPage: React.FC = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="space-y-6">
+    <div className="w-full min-h-screen">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={() => navigate('/courses-categories')}>
-            <ArrowLeft className="w-4 h-4" />
-            Back to Courses & Categories
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              Assign Course Groups
-            </h1>
-            <p className="text-gray-600 dark:text-gray-300">
-              Assign courses to specific user groups
-            </p>
-          </div>
+          {/* Removed back button as per new navigation policy */}
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Assign Course Groups</h1>
+          <p className="text-gray-600 dark:text-gray-300">
+            Assign courses to specific user groups
+          </p>
         </div>
       </div>
 

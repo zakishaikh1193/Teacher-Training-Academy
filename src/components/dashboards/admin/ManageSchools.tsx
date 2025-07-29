@@ -41,7 +41,11 @@ interface SchoolFeature {
   isActive?: boolean;
 }
 
-export const ManageSchools: React.FC = () => {
+interface ManageSchoolsProps {
+  onSectionChange?: (section: string) => void;
+}
+
+export const ManageSchools: React.FC<ManageSchoolsProps> = ({ onSectionChange }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [schools, setSchools] = useState<School[]>([]);
@@ -51,84 +55,84 @@ export const ManageSchools: React.FC = () => {
 
   const schoolFeatures: SchoolFeature[] = [
     {
-      id: 'create',
+      id: 'create-school',
       title: 'Create School',
       description: 'Add new educational institutions to the system',
       icon: Plus,
-      route: '/school/create',
+      route: 'create-school',
       color: 'from-green-500 to-emerald-600',
       isActive: true
     },
     {
-      id: 'edit',
+      id: 'edit-school',
       title: 'Edit School',
       description: 'Modify existing school information and settings',
       icon: Edit,
-      route: '/school/edit',
+      route: 'edit-school',
       color: 'from-blue-500 to-cyan-600',
       isActive: true
     },
     {
-      id: 'advanced',
+      id: 'advanced-school-settings',
       title: 'Advanced School Settings',
       description: 'Configure advanced parameters and integrations',
       icon: Settings,
-      route: '/school/advanced',
+      route: 'advanced-school-settings',
       color: 'from-purple-500 to-violet-600',
       isActive: true
     },
     {
-      id: 'manage',
+      id: 'manage-schools-list',
       title: 'Manage Schools',
       description: 'View and organize all registered schools',
       icon: Building,
-      route: '/school/manage',
+      route: 'manage-schools-list',
       color: 'from-orange-500 to-red-600',
       count: schools.length,
       isActive: true
     },
     {
-      id: 'departments',
+      id: 'manage-departments',
       title: 'Manage Departments',
       description: 'Organize school departments and hierarchies',
       icon: Users,
-      route: '/school/departments',
+      route: 'manage-departments',
       color: 'from-teal-500 to-cyan-600',
       isActive: true
     },
     {
-      id: 'profiles',
+      id: 'optional-profiles',
       title: 'Optional Profiles',
       description: 'Configure additional user profile fields',
       icon: UserCheck,
-      route: '/school/profiles',
+      route: 'optional-profiles',
       color: 'from-indigo-500 to-purple-600',
       isActive: true
     },
     {
-      id: 'capabilities',
+      id: 'restrict-capabilities',
       title: 'Restrict Capabilities',
       description: 'Manage user permissions and access controls',
       icon: Shield,
-      route: '/school/capabilities',
+      route: 'restrict-capabilities',
       color: 'from-red-500 to-pink-600',
       isActive: true
     },
     {
-      id: 'import',
+      id: 'import-schools',
       title: 'Import Schools',
       description: 'Bulk import schools from CSV or external sources',
       icon: Upload,
-      route: '/school/import',
+      route: 'import-schools',
       color: 'from-yellow-500 to-orange-600',
       isActive: true
     },
     {
-      id: 'templates',
+      id: 'email-templates',
       title: 'Email Templates',
       description: 'Customize email communications for schools',
       icon: Mail,
-      route: '/school/templates',
+      route: 'email-templates',
       color: 'from-pink-500 to-rose-600',
       isActive: true
     }
@@ -151,8 +155,8 @@ export const ManageSchools: React.FC = () => {
   };
 
   const handleFeatureClick = (feature: SchoolFeature) => {
-    if (feature.isActive) {
-      navigate(feature.route);
+    if (feature.isActive && onSectionChange) {
+      onSectionChange(feature.route);
     }
   };
 

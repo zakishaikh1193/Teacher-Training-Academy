@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { schoolsService } from '../../../services/schoolsService';
 import { coursesService } from '../../../services/coursesService'; 
 import { Button } from '../../ui/Button';
-import { Plus, Users, FileText, Link, Loader2, Upload, BookOpen, Tag, PlusCircle, Edit, Trash2, ChevronDown, Eye, EyeOff, Image as ImageIcon } from 'lucide-react';
+import { Plus, Users, FileText, Link, Loader2, Upload, BookOpen, Tag, PlusCircle, Edit, Trash2, ChevronDown, Eye, EyeOff, Image as ImageIcon, ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getCourseContents } from '../../../services/apiService';
 import * as contentBuilderService from '../../../services/contentBuilderService';
@@ -29,6 +29,10 @@ interface CourseSection {
     section: number;
     summary: string;
     modules: ContentModule[];
+}
+
+interface ManageCourseContentPageProps {
+  courseId?: string;
 }
 
 // --- ModuleDisplay Sub-Component ---
@@ -115,8 +119,10 @@ const ModuleDisplay: React.FC<{ module: ContentModule; onDelete: () => void; onU
 };
 
 // --- Main Page Component ---
-const ManageCourseContentPage: React.FC = () => {
-  const { courseId } = useParams<{ courseId: string }>();
+const ManageCourseContentPage: React.FC<ManageCourseContentPageProps> = ({ courseId: propCourseId }) => {
+  const { search } = useLocation();
+  const { courseId: urlCourseId } = useParams<{ courseId: string }>();
+  const courseId = propCourseId || urlCourseId;
   const [sections, setSections] = useState<CourseSection[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -164,8 +170,8 @@ const ManageCourseContentPage: React.FC = () => {
  const [groups, setGroups] = useState<any[]>([]);
   const [selectedGroupVisibility, setSelectedGroupVisibility] = useState<number[]>([]);
 
- useEffect(() => {
     const loadInitialData = async () => {
+      const navigate = useNavigate();
         setLoading(true);
         setError(null);
         try {
@@ -178,12 +184,18 @@ const ManageCourseContentPage: React.FC = () => {
             setSections(sectionData);
             setGroups(groupsData);
         } catch (err: any) {
+            console.error('Error loading initial data:', err);
             setError(err.message || 'Failed to fetch initial page data');
         } finally {
             setLoading(false);
         }
     };
-    loadInitialData();
+
+    if (courseId) {
+        loadInitialData();
+    } else {
+        console.log('No courseId provided, not loading data');
+    }
   }, [courseId]);
 
  const fetchContent = async () => {
@@ -408,9 +420,14 @@ const ManageCourseContentPage: React.FC = () => {
   ];
 
   return (
-    <div className="max-w-4xl mx-auto py-8 px-4">
+    <div className="w-full min-h-screen">
       <div className="flex items-center justify-between mb-8">
-        <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Course Timeline</h1>
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" onClick={() => window.location.href = '/dashboard?section=manage-content'} className="hover:bg-gray-100 p-2 rounded-full">
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Course Timeline</h1>
+        </div>
         <div className="flex items-center gap-2">
             <Button onClick={() => setShowSectionModal(true)} variant="outline">
                 <PlusCircle className="w-4 h-4 mr-2" /> New Section
