@@ -19,71 +19,145 @@ export const TrainerAdminDashboardPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let isMounted = true;
+    const abortController = new AbortController();
+    
     const fetchData = async () => {
+      if (!isMounted) return;
+      
       setLoading(true);
       setError(null);
+      
       try {
-        // Step 1: Get all base data in parallel
-        const [categoriesData, coursesData, rolesData] = await Promise.all([
+        // Step 1: Get all base data with error handling for each
+        const [categoriesData, coursesData, rolesData] = await Promise.allSettled([
           coursesService.getAllCategories(),
           coursesService.getAllCourses(),
           coursesService.getAvailableRoles(),
         ]);
 
-        setCategories(categoriesData);
-        setCourses(coursesData);
+        // Handle each promise result
+        const categories = categoriesData.status === 'fulfilled' ? categoriesData.value : [];
+        const courses = coursesData.status === 'fulfilled' ? coursesData.value : [];
+        const roles = rolesData.status === 'fulfilled' ? rolesData.value : [];
         
-        // --- THIS IS THE KEY INSIGHT ---
-        // Step 2: Identify ALL roles that should be considered a "teacher" or "trainer".
-        // The mismatch was because we only looked for one role, but Moodle has several.
+        if (!isMounted) return;
+        
+        setCategories(categories);
+        setCourses(courses);
+        
+        if (categoriesData.status === 'rejected') {
+          console.warn('Failed to load categories:', categoriesData.reason);
+        }
+        if (coursesData.status === 'rejected') {
+          console.warn('Failed to load courses:', coursesData.reason);
+        }
+        if (rolesData.status === 'rejected') {
+          console.warn('Failed to load roles, using default roles:', rolesData.reason);
+        }
+        
+        // Step 2: Identify teacher roles
         const teacherRoleShortnames = ['teachers', 'editingteacher', 'teacher'];
-        const teacherRoleIDs = new Set( // Use a Set for efficient lookups
-          rolesData
-            .filter(role => teacherRoleShortnames.includes(role.shortname))
-            .map(role => role.id)
+        const teacherRoleIDs = new Set(
+          roles
+            .filter((role: any) => teacherRoleShortnames.includes(role.shortname))
+            .map((role: any) => role.id)
         );
 
         if (teacherRoleIDs.size === 0) {
-          throw new Error("Could not find any teacher-like roles (teachers, editingteacher, teacher).");
+          console.warn('No teacher roles found, using default role IDs');
+          teacherRoleIDs.add(3); // Default teacher role ID
+          teacherRoleIDs.add(4); // Default non-editing teacher role ID
         }
         
-        // Step 3: Get the list of ALL users who have ANY of these teacher roles for the right-hand column.
-        const trainerPromises = Array.from(teacherRoleIDs).map(id => usersService.getUsersByRoleId(id));
-        const trainersByRole = await Promise.all(trainerPromises);
-        
-        const allTrainersMap = new Map<string, UserType>();
-        trainersByRole.flat().forEach(trainer => allTrainersMap.set(trainer.id, trainer));
-        setAllTrainers(Array.from(allTrainersMap.values()));
-
-        // Step 4: Fetch enrollments for EVERY course. This is the single source of truth.
-        // The System Admin token should see all users from all companies in this core function.
-        const enrollmentPromises = coursesData.map(course => 
-          coursesService.getCourseEnrollments(String(course.id))
-        );
-        const allEnrollments = await Promise.all(enrollmentPromises);
-
-        // Step 5: Process the enrollments, checking against our complete list of teacher role IDs.
-        const trainersMap: { [courseId: string]: UserType[] } = {};
-        coursesData.forEach((course, index) => {
-          const enrollmentsForCourse = allEnrollments[index];
+        // Step 3: Get all trainers
+        try {
+          const trainerPromises = Array.from(teacherRoleIDs).map(id => 
+            usersService.getUsersByRoleId(id as number)
+          );
+          const trainersByRole = await Promise.allSettled(trainerPromises);
           
-          const assignedTrainers = enrollmentsForCourse.filter(enrollment => 
-            enrollment.roles?.some((role: any) => teacherRoleIDs.has(role.roleid))
+          if (!isMounted) return;
+          
+          const allTrainersMap = new Map<string, UserType>();
+          trainersByRole
+            .filter((result): result is PromiseFulfilledResult<UserType[]> => result.status === 'fulfilled')
+            .flatMap(result => result.value)
+            .forEach(trainer => allTrainersMap.set(trainer.id, trainer));
+            
+          setAllTrainers(Array.from(allTrainersMap.values()));
+          
+          // Log any failed role fetches
+          trainersByRole
+            .filter((result): result is PromiseRejectedResult => result.status === 'rejected')
+            .forEach((result, index) => {
+              console.warn(`Failed to fetch users for role ID ${Array.from(teacherRoleIDs)[index]}:`, result.reason);
+            });
+        } catch (err) {
+          console.error('Error fetching trainers:', err);
+          // Continue with empty trainers list
+          setAllTrainers([]);
+        }
+
+        // Step 4: Fetch course enrollments in batches to avoid overwhelming the server
+        const BATCH_SIZE = 5;
+        const trainersMap: { [courseId: string]: UserType[] } = {};
+        
+        for (let i = 0; i < courses.length; i += BATCH_SIZE) {
+          if (!isMounted) return;
+          
+          const batch = courses.slice(i, i + BATCH_SIZE);
+          const batchPromises = batch.map(course => 
+            coursesService.getCourseEnrollments(String(course.id))
           );
           
-          trainersMap[course.id] = assignedTrainers;
-        });
+          const batchResults = await Promise.allSettled(batchPromises);
+          
+          batchResults.forEach((result, idx) => {
+            if (result.status === 'fulfilled') {
+              const course = batch[idx];
+              const enrollmentsForCourse = result.value;
+              
+              const assignedTrainers = enrollmentsForCourse.filter((enrollment: any) => 
+                enrollment.roles?.some((role: any) => teacherRoleIDs.has(role.roleid))
+              );
+              
+              trainersMap[course.id] = assignedTrainers;
+            } else {
+              console.warn(`Failed to fetch enrollments for course ${batch[idx]?.id}:`, result.reason);
+            }
+          });
+          
+          // Update state after each batch
+          if (isMounted) {
+            setTrainersByCourse(prev => ({
+              ...prev,
+              ...trainersMap
+            }));
+          }
+        }
         
-        setTrainersByCourse(trainersMap);
-
       } catch (err) {
-        console.error("Failed to load trainer dashboard data:", err);
-        setError("Failed to load dashboard data. Please try again later.");
+        if (isMounted) {
+          console.error("Failed to load trainer dashboard data:", err);
+          setError(
+            "Failed to load some dashboard data. Some information may be incomplete. " +
+            "Please refresh the page to try again."
+          );
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
+    
     fetchData();
+    
+    return () => {
+      isMounted = false;
+      abortController.abort();
+    };
   }, []);
 
   const coursesByCategory = useMemo(() => {

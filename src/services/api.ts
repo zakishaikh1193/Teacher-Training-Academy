@@ -21,7 +21,6 @@ api.interceptors.request.use((config) => {
 
 // Enhanced role detection based on actual Moodle/Iomad roles and username patterns
 const detectUserRole = (username: string, userData?: any): UserRole | undefined => {
-  console.log('DEBUG detectUserRole userData:', userData); // Debug log for role detection
   // 1. Check for roles array from Moodle/Iomad
   if (userData && Array.isArray(userData.roles)) {
     // Priority order for mapping Moodle roles to app roles
