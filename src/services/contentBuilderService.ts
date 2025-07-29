@@ -114,4 +114,115 @@ export async function updateSection(sectionid: number, name: string, summary: st
         throw new Error(data.message);
     }
     return data;
-} 
+}
+
+/**
+ * Sets access restrictions on a specific course module (activity) using the correct
+ * Moodle web service function: core_course_update_modules.
+ * @param cmid The course module ID of the activity to restrict.
+ * @param roleIds An array of role IDs that are allowed to see this activity. If empty, restrictions are removed.
+ * @returns {Promise<any>}
+ */
+export async function setActivityRoleRestrictions(cmid: number, roleIds: number[]) {
+  const params = new URLSearchParams();
+  params.append('wstoken', TOKEN);
+  // --- THE FUNCTION NAME FIX ---
+  params.append('wsfunction', 'core_course_update_modules');
+  params.append('moodlewsrestformat', 'json');
+  
+  let availabilityCondition = null;
+
+  if (roleIds && roleIds.length > 0) {
+    availabilityCondition = {
+      'op': '|', 
+      'c': roleIds.map(roleId => ({
+        'type': 'role',
+        'id': roleId
+      })),
+      'showc': roleIds.map(() => true)
+    };
+  }
+
+  // --- THE PARAMETER STRUCTURE FIX ---
+  // This function expects the data to be inside an 'updates' array.
+  // We are only updating one module, so it's an array with one object.
+  params.append('updates[0][id]', String(cmid));
+  params.append('updates[0][availability]', JSON.stringify(availabilityCondition));
+
+  const { data } = await axios.post(MOODLE_API_URL, params);
+  
+  // The response for this function might be slightly different. 
+  // We check for an exception property, which is a reliable way to detect Moodle errors.
+  if (data.exception) {
+    console.error("Moodle API Error:", data);
+    throw new Error(data.message || 'Failed to set activity restrictions.');
+  }
+  
+  return data;
+}
+
+
+// --- NEW GROUP MANAGEMENT FUNCTIONS ---
+
+/**
+ * Fetches all groups for a specific course.
+ * @param courseid The ID of the course.
+ * @returns {Promise<any[]>} An array of group objects.
+ */
+export async function getCourseGroups(courseid: number): Promise<any[]> {
+  const params = new URLSearchParams();
+  params.append('wstoken', TOKEN);
+  params.append('wsfunction', 'local_contentbuilder_get_course_groups');
+  params.append('moodlewsrestformat', 'json');
+  params.append('courseid', String(courseid));
+  
+  const { data } = await axios.post(MOODLE_API_URL, params);
+  if (data.exception) {
+    throw new Error(data.message || 'Failed to fetch course groups.');
+  }
+  return data;
+}
+
+/**
+ * Creates a new group within a course.
+ * @param courseid The ID of the course where the group will be created.
+ * @param name The name of the new group.
+ * @param description An optional description for the group.
+ * @returns {Promise<any>} The response from the API, typically including the new groupid.
+ */
+export async function createCourseGroup(courseid: number, name: string, description: string = ''): Promise<any> {
+  const params = new URLSearchParams();
+  params.append('wstoken', TOKEN);
+  params.append('wsfunction', 'local_contentbuilder_create_course_group');
+  params.append('moodlewsrestformat', 'json');
+  params.append('courseid', String(courseid));
+  params.append('name', name);
+  params.append('description', description);
+  
+  const { data } = await axios.post(MOODLE_API_URL, params);
+  if (data.exception) {
+    throw new Error(data.message || 'Failed to create course group.');
+  }
+  return data;
+}
+
+  /**
+ * Adds a user as a member to a specific group.
+ * @param groupid The ID of the group.
+ * @param userid The ID of the user to add.
+ * @returns {Promise<any>} The response from the API.
+ */
+export async function addGroupMember(groupid: number, userid: number): Promise<any> {
+  const params = new URLSearchParams();
+  params.append('wstoken', TOKEN);
+  params.append('wsfunction', 'local_contentbuilder_add_group_member');
+  params.append('moodlewsrestformat', 'json');
+  params.append('groupid', String(groupid));
+  params.append('userid', String(userid));
+  
+  const { data } = await axios.post(MOODLE_API_URL, params);
+  if (data.exception) {
+    throw new Error(data.message || 'Failed to add user to group.');
+  }
+  return data;
+}

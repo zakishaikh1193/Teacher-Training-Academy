@@ -116,6 +116,41 @@ export const coursesService = {
     }
   },
 
+/**
+ * Fetches all available roles using the Intelliboard plugin function.
+ * @returns {Promise<any[]>} An array of role objects.
+ */
+async getAvailableRoles(): Promise<any[]> {
+  try {
+    const response = await api.get('', {
+      params: {
+        wsfunction: 'local_intelliboard_get_roles_list',
+      },
+    });
+
+    if (response.data && typeof response.data.data === 'string') {
+      const parsedData = JSON.parse(response.data.data);
+
+      // --- THE FIX IS HERE ---
+      // The parsed data is an object of objects, e.g., { "1": { id: "1", name: "Manager", ... } }
+      // We need to get the values of this object, which is an array of the inner objects.
+      const rolesArray = Object.values(parsedData);
+      
+      // Now we can map over this array of objects correctly.
+      return rolesArray.map((role: any) => ({
+        id: parseInt(role.id, 10),
+        name: role.name,
+        shortname: role.shortname, // The shortname is already provided by the API!
+      }));
+    }
+    return [];
+  } catch (error)
+ {
+    console.error('Error fetching available roles via Intelliboard:', error);
+    throw new Error('Failed to fetch roles from Intelliboard');
+  }
+},
+
   /**
    * Enroll user in course
    */
