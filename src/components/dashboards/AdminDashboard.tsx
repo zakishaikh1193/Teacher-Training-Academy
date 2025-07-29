@@ -655,6 +655,8 @@ export const AdminDashboard: React.FC = () => {
         return <SchoolGroupsPage />;
       case 'assign-course-groups':
         return <AssignCourseGroupsPage />;
+        case 'teachers':
+        return <TrainerAdminDashboardPage />;
       case 'teaching-locations':
         return <TeachingLocationsPage />;
       case 'learning-paths':
@@ -691,8 +693,7 @@ export const AdminDashboard: React.FC = () => {
         return <ManageCoursesCategories onSectionChange={(section) => setActiveSection(section)} />;
       case 'analytics':
         return <AnalyticsPage />;
-      case 'teachers':
-        return <TrainerAdminDashboardPage />;
+      
 
       default:
         return (

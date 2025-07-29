@@ -832,8 +832,7 @@ export const usersService = {
 async getUsersByRoleId(roleId: number): Promise<User[]> {
   try {
     // Step 1: Get all users from the system
-    const allUsers = await this.getAllUsers(); // Assuming you have a getAllUsers function
-
+    const allUsers = await this.getAllUsers();
     // Step 2: Create an array of promises to check the role of each user
     const userRoleChecks = allUsers.map(async (user) => {
       try {

@@ -6,7 +6,10 @@ const IOMAD_TOKEN = import.meta.env.VITE_IOMAD_TOKEN || '4a2ba2d6742afc7d13ce4cf
 
 const api = axios.create({
   baseURL: IOMAD_BASE_URL,
-  timeout: 10000,
+  timeout: 30000, // Increased timeout to 30 seconds
+  validateStatus: function (status) {
+    return status >= 200 && status < 500; // Resolve only if the status code is less than 500
+  }
 });
 
 // Add request interceptor to include token
@@ -98,7 +101,7 @@ export const coursesService = {
   },
 
   /**
-   * Get course enrollments
+   * Get course enrollments with better error handling
    */
   async getCourseEnrollments(courseId: string): Promise<any[]> {
     try {
@@ -109,45 +112,103 @@ export const coursesService = {
         },
       });
 
+      if (response.status !== 200) {
+        console.error('Failed to fetch enrollments:', response.statusText);
+        return [];
+      }
+
       return response.data || [];
-    } catch (error) {
-      console.error('Error fetching course enrollments:', error);
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        if (error.code === 'ECONNABORTED') {
+          console.error('Request timed out:', error.message);
+        } else if (error.response) {
+          // The request was made and the server responded with a status code
+          // that falls out of the range of 2xx
+          console.error('Error response:', error.response.status, error.response.data);
+        } else if (error.request) {
+          // The request was made but no response was received
+          console.error('No response received:', error.request);
+        } else {
+          // Something happened in setting up the request that triggered an Error
+          console.error('Error:', error.message);
+        }
+      } else if (error instanceof Error) {
+        console.error('Error:', error.message);
+      } else {
+        console.error('An unknown error occurred');
+      }
       return [];
     }
   },
 
 /**
  * Fetches all available roles using the Intelliboard plugin function.
+ * First tries the standard Moodle API, falls back to Intelliboard if needed.
  * @returns {Promise<any[]>} An array of role objects.
  */
 async getAvailableRoles(): Promise<any[]> {
   try {
+    // First try the standard Moodle roles API
+    try {
+      const response = await api.get('', {
+        params: {
+          wsfunction: 'core_role_get_roles',
+        },
+        timeout: 20000, // 20 seconds timeout for this specific request
+      });
+
+      if (response.data && Array.isArray(response.data.roles)) {
+        return response.data.roles.map((role: any) => ({
+          id: role.roleid || role.id,
+          name: role.name,
+          shortname: role.shortname,
+        }));
+      }
+    } catch (standardError) {
+      console.warn('Standard roles API failed, falling back to Intelliboard:', standardError);
+    }
+
+    // Fallback to Intelliboard if standard API fails
     const response = await api.get('', {
       params: {
         wsfunction: 'local_intelliboard_get_roles_list',
       },
+      timeout: 20000, // 20 seconds timeout for this specific request
     });
 
-    if (response.data && typeof response.data.data === 'string') {
-      const parsedData = JSON.parse(response.data.data);
-
-      // --- THE FIX IS HERE ---
-      // The parsed data is an object of objects, e.g., { "1": { id: "1", name: "Manager", ... } }
-      // We need to get the values of this object, which is an array of the inner objects.
-      const rolesArray = Object.values(parsedData);
+    if (response.data) {
+      // Handle both string and object responses
+      const responseData = typeof response.data === 'string' ? JSON.parse(response.data) : response.data;
+      const rolesData = responseData.data || responseData;
       
-      // Now we can map over this array of objects correctly.
-      return rolesArray.map((role: any) => ({
-        id: parseInt(role.id, 10),
-        name: role.name,
-        shortname: role.shortname, // The shortname is already provided by the API!
-      }));
+      // Handle both array and object response formats
+      if (Array.isArray(rolesData)) {
+        return rolesData.map((role: any) => ({
+          id: role.roleid || role.id,
+          name: role.name || role.rolename,
+          shortname: role.shortname || (role.name ? role.name.toLowerCase().replace(/\s+/g, '') : '')
+        }));
+      } else if (typeof rolesData === 'object' && rolesData !== null) {
+        return Object.values(rolesData).map((role: any) => ({
+          id: role.roleid || role.id,
+          name: role.name || role.rolename,
+          shortname: role.shortname || (role.name ? role.name.toLowerCase().replace(/\s+/g, '') : '')
+        }));
+      }
     }
+    
     return [];
-  } catch (error)
- {
-    console.error('Error fetching available roles via Intelliboard:', error);
-    throw new Error('Failed to fetch roles from Intelliboard');
+  } catch (error) {
+    console.error('Error fetching available roles:', error);
+    // Return a default set of roles if all else fails
+    return [
+      { id: 1, name: 'Manager', shortname: 'manager' },
+      { id: 2, name: 'Course Creator', shortname: 'coursecreator' },
+      { id: 3, name: 'Teacher', shortname: 'editingteacher' },
+      { id: 4, name: 'Non-editing Teacher', shortname: 'teacher' },
+      { id: 5, name: 'Student', shortname: 'student' },
+    ];
   }
 },
 
