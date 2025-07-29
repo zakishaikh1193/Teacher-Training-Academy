@@ -1,16 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios'; // Step 1: Import axios directly
-import { ArrowLeft, User, BookOpen, Award } from 'lucide-react';
+import axios from 'axios';
+import { ArrowLeft, User, BookOpen } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { coursesService } from '../../services/coursesService';
 import { usersService } from '../../services/usersService';
+import * as contentBuilderService from '../../services/contentBuilderService';
 import { Course, User as UserType } from '../../types';
 
-// Step 2: Get the base URL and token from environment variables, just like your service file
 const IOMAD_BASE_URL = import.meta.env.VITE_IOMAD_URL || 'https://iomad.bylinelms.com/webservice/rest/server.php';
 const IOMAD_TOKEN = import.meta.env.VITE_IOMAD_TOKEN || '4a2ba2d6742afc7d13ce4cf486ba7633';
-
 
 export const AssignTrainerToCoursePage: React.FC = () => {
   const navigate = useNavigate();
@@ -59,7 +58,7 @@ export const AssignTrainerToCoursePage: React.FC = () => {
     fetchData();
   }, []);
 
-  // --- THIS IS THE UPDATED FUNCTION ---
+  // --- THIS IS THE CORRECTED FUNCTION ---
   const handleAssign = async () => {
     if (!selectedUser || !selectedCourse || !teacherRoleId) {
       setMessage('Please select a trainer and a course.');
@@ -70,7 +69,12 @@ export const AssignTrainerToCoursePage: React.FC = () => {
     setMessage(null);
 
     try {
-      // Step 3: Build the form-encoded data using URLSearchParams
+      const courseIdNum = Number(selectedCourse);
+      const userIdNum = Number(selectedUser);
+      const courseInfo = courses.find(c => c.id === selectedCourse);
+
+      // --- Step 1: ENROLL THE USER IN THE COURSE (This must happen first!) ---
+      console.log('Step 1: Enrolling user in course...');
       const params = new URLSearchParams();
       params.append('wstoken', IOMAD_TOKEN);
       params.append('wsfunction', 'enrol_manual_enrol_users');
@@ -79,32 +83,51 @@ export const AssignTrainerToCoursePage: React.FC = () => {
       params.append('enrolments[0][userid]', selectedUser);
       params.append('enrolments[0][roleid]', String(teacherRoleId));
 
-      // Step 4: Make a direct axios POST request with the correct headers
       const response = await axios.post(IOMAD_BASE_URL, params, {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       });
 
-      // Step 5: Check the response for success or failure
       if (response.data && response.data.exception) {
         console.error('Moodle enrollment error:', response.data);
-        setMessage('Assignment failed. The trainer may already be enrolled in this course.');
-      } else {
-        // A successful response is often null or an empty array
-        setMessage('Trainer successfully assigned to the course!');
-        setSelectedUser('');
-        setSelectedCourse('');
+        throw new Error('Assignment failed. The trainer may already be enrolled in this course.');
       }
-    } catch (error) {
-      setMessage('An error occurred during assignment. Please check the console.');
+      console.log('Step 1 Succeeded: User is now enrolled in the course.');
+
+      // --- Step 2: NOW manage the group, since the user is in the course ---
+      const targetGroupName = `${courseInfo?.fullname} - Trainers`;
+      console.log(`Step 2: Target group for this course is: "${targetGroupName}"`);
+
+      const existingGroups = await contentBuilderService.getCourseGroups(courseIdNum);
+      let targetGroup = existingGroups.find(g => g.name === targetGroupName);
+      
+      if (!targetGroup) {
+        console.log(`Group "${targetGroupName}" not found. Creating it...`);
+        const newGroupResponse = await contentBuilderService.createCourseGroup(courseIdNum, targetGroupName, "System-generated group for trainers.");
+        if (!newGroupResponse || !newGroupResponse.groupid) {
+          throw new Error('CRITICAL: Failed to auto-create the necessary group for trainers.');
+        }
+        targetGroup = { id: newGroupResponse.groupid, name: targetGroupName };
+        console.log(`Step 2 Succeeded: Group created with ID: ${targetGroup.id}`);
+      } else {
+        console.log(`Step 2 Succeeded: Found existing group with ID: ${targetGroup.id}`);
+      }
+      
+      // Step 3: Add the now-enrolled user to the group
+      await contentBuilderService.addGroupMember(targetGroup.id, userIdNum);
+      console.log(`Step 3 Succeeded: User ${userIdNum} added to group ${targetGroup.id}.`);
+
+      // If we reach here, everything was successful.
+      setMessage('Trainer successfully assigned to the course and added to the trainers group!');
+      setSelectedUser('');
+      setSelectedCourse('');
+
+    } catch (error: any) {
+      setMessage(error.message || 'An error occurred during assignment.');
       console.error('Full error object:', error);
-    
     }
     setAssigning(false);
   };
 
-  // --- The rest of your component remains the same ---
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -168,7 +191,7 @@ export const AssignTrainerToCoursePage: React.FC = () => {
             disabled={assigning || !selectedUser || !selectedCourse}
             className="mt-4"
           >
-            {assigning ? 'Assigning...' : 'Assign Trainer to Course'}
+            {assigning ? 'Assigning...' : 'Assign Trainer & Add to Group'}
           </Button>
 
           {message && <div className={`mt-4 p-3 rounded-lg ${message.includes('success') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{message}</div>}

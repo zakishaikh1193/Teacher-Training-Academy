@@ -6,7 +6,7 @@ const IOMAD_TOKEN = import.meta.env.VITE_IOMAD_TOKEN || '4a2ba2d6742afc7d13ce4cf
  
 const api = axios.create({
   baseURL: IOMAD_BASE_URL,
-  timeout: 10000,
+  timeout: 150000,
 });
  
 // Add request interceptor to include token
