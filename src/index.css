@@ -37,3 +37,588 @@ html, body {
   -ms-overflow-style: none; /* IE and Edge */
   scrollbar-width: none; /* Firefox */
 }
+
+/* Custom animations for feedback charts */
+@keyframes bounce-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-bounce-in {
+  animation: bounce-in 0.6s ease-out;
+}
+
+/* Stagger animation for multiple charts */
+.animate-bounce-in:nth-child(1) { animation-delay: 0.1s; }
+.animate-bounce-in:nth-child(2) { animation-delay: 0.2s; }
+.animate-bounce-in:nth-child(3) { animation-delay: 0.3s; }
+
+/* Chart line drawing animation */
+@keyframes draw-line {
+  from {
+    stroke-dasharray: 0 1000;
+  }
+  to {
+    stroke-dasharray: 1000 0;
+  }
+}
+
+.animate-draw-line {
+  animation: draw-line 2s ease-out forwards;
+}
+
+/* Data point pulse animation */
+@keyframes data-point-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.8;
+  }
+}
+
+.animate-data-point {
+  animation: data-point-pulse 2s ease-in-out infinite;
+}
+
+/* Chart container hover effect */
+.chart-container:hover .chart-line {
+  stroke-width: 3;
+  transition: stroke-width 0.3s ease;
+}
+
+.chart-container:hover .chart-point {
+  r: 6;
+  transition: r 0.3s ease;
+}
+
+/* Initiative chart specific animations */
+@keyframes initiative-draw {
+  from { stroke-dasharray: 0 1000; }
+  to { stroke-dasharray: 1000 0; }
+}
+
+.animate-initiative-draw {
+  animation: initiative-draw 2s ease-out forwards;
+}
+
+@keyframes initiative-fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-initiative-fade-in {
+  animation: initiative-fade-in 0.8s ease-out;
+}
+
+/* Knowledge sharing chart specific animations */
+@keyframes knowledge-draw {
+  from { stroke-dasharray: 0 1000; }
+  to { stroke-dasharray: 1000 0; }
+}
+
+.animate-knowledge-draw {
+  animation: knowledge-draw 2.5s ease-out forwards;
+}
+
+@keyframes knowledge-area-fill {
+  from { opacity: 0; }
+  to { opacity: 0.3; }
+}
+
+.animate-knowledge-area-fill {
+  animation: knowledge-area-fill 1.5s ease-out forwards;
+}
+
+@keyframes knowledge-point-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.3);
+    opacity: 0.8;
+  }
+}
+
+.animate-knowledge-point-pulse {
+  animation: knowledge-point-pulse 1s ease-in-out infinite;
+}
+
+/* Community charts specific animations */
+@keyframes community-draw {
+  from { 
+    stroke-dasharray: 0 1000;
+    opacity: 0;
+  }
+  to { 
+    stroke-dasharray: 1000 0;
+    opacity: 1;
+  }
+}
+
+.animate-community-draw {
+  animation: community-draw 2s ease-out forwards;
+}
+
+@keyframes community-segment-grow {
+  from { 
+    transform: scale(0);
+    opacity: 0;
+  }
+  to { 
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-community-segment-grow {
+  animation: community-segment-grow 1.5s ease-out forwards;
+}
+
+@keyframes community-tooltip-fade {
+  from { 
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-community-tooltip-fade {
+  animation: community-tooltip-fade 0.3s ease-out;
+}
+
+/* Attendance chart specific animations */
+@keyframes attendance-bar-grow {
+  from { 
+    transform: scaleY(0);
+    opacity: 0;
+  }
+  to { 
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+.animate-attendance-bar-grow {
+  animation: attendance-bar-grow 1.5s ease-out forwards;
+  transform-origin: bottom;
+}
+
+@keyframes attendance-line-draw {
+  from { 
+    stroke-dasharray: 0 1000;
+    opacity: 0;
+  }
+  to { 
+    stroke-dasharray: 1000 0;
+    opacity: 1;
+  }
+}
+
+.animate-attendance-line-draw {
+  animation: attendance-line-draw 2s ease-out forwards;
+}
+
+@keyframes attendance-area-fill {
+  from { 
+    opacity: 0;
+  }
+  to { 
+    opacity: 0.3;
+  }
+}
+
+.animate-attendance-area-fill {
+  animation: attendance-area-fill 1.5s ease-out forwards;
+}
+
+/* Satisfaction chart specific animations */
+@keyframes satisfaction-bar-grow {
+  from { 
+    transform: scaleY(0);
+    opacity: 0;
+  }
+  to { 
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+.animate-satisfaction-bar-grow {
+  animation: satisfaction-bar-grow 1.5s ease-out forwards;
+  transform-origin: bottom;
+}
+
+@keyframes satisfaction-tooltip-fade {
+  from { 
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-satisfaction-tooltip-fade {
+  animation: satisfaction-tooltip-fade 0.3s ease-out;
+}
+
+/* Stress indicators chart specific animations */
+@keyframes stress-bar-grow {
+  from { 
+    transform: scaleY(0);
+    opacity: 0;
+  }
+  to { 
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+.animate-stress-bar-grow {
+  animation: stress-bar-grow 1.5s ease-out forwards;
+  transform-origin: bottom;
+}
+
+@keyframes stress-line-draw {
+  from { 
+    stroke-dasharray: 0 1000;
+    opacity: 0;
+  }
+  to { 
+    stroke-dasharray: 1000 0;
+    opacity: 1;
+  }
+}
+
+.animate-stress-line-draw {
+  animation: stress-line-draw 2s ease-out forwards;
+}
+
+@keyframes stress-area-fill {
+  from { 
+    opacity: 0;
+  }
+  to { 
+    opacity: 0.3;
+  }
+}
+
+.animate-stress-area-fill {
+  animation: stress-area-fill 1.5s ease-out forwards;
+}
+
+@keyframes stress-point-pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+}
+
+.animate-stress-point-pulse {
+  animation: stress-point-pulse 0.6s ease-in-out;
+}
+
+/* Motivation index chart specific animations */
+@keyframes motivation-ring-grow {
+  from { 
+    stroke-dasharray: 0 1000;
+    opacity: 0;
+  }
+  to { 
+    stroke-dasharray: 1000 0;
+    opacity: 1;
+  }
+}
+
+.animate-motivation-ring-grow {
+  animation: motivation-ring-grow 2s ease-out forwards;
+}
+
+/* Psychological safety chart specific animations */
+@keyframes psychological-line-draw {
+  from { 
+    stroke-dasharray: 0 1000;
+    opacity: 0;
+  }
+  to { 
+    stroke-dasharray: 1000 0;
+    opacity: 1;
+  }
+}
+
+.animate-psychological-line-draw {
+  animation: psychological-line-draw 2s ease-out forwards;
+}
+
+@keyframes psychological-area-fill {
+  from { 
+    opacity: 0;
+  }
+  to { 
+    opacity: 0.3;
+  }
+}
+
+.animate-psychological-area-fill {
+  animation: psychological-area-fill 1.5s ease-out forwards;
+}
+
+@keyframes psychological-point-pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+}
+
+.animate-psychological-point-pulse {
+  animation: psychological-point-pulse 0.6s ease-in-out;
+}
+
+/* Workload impact chart specific animations */
+@keyframes workload-line-draw {
+  from { 
+    stroke-dasharray: 0 1000;
+    opacity: 0;
+  }
+  to { 
+    stroke-dasharray: 1000 0;
+    opacity: 1;
+  }
+}
+
+.animate-workload-line-draw {
+  animation: workload-line-draw 2s ease-out forwards;
+}
+
+@keyframes workload-point-pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+}
+
+.animate-workload-point-pulse {
+  animation: workload-point-pulse 0.6s ease-in-out;
+}
+
+/* Platform usage chart specific animations */
+@keyframes platform-line-draw {
+  from { 
+    stroke-dasharray: 0 1000;
+    opacity: 0;
+  }
+  to { 
+    stroke-dasharray: 1000 0;
+    opacity: 1;
+  }
+}
+
+.animate-platform-line-draw {
+  animation: platform-line-draw 2s ease-out forwards;
+}
+
+@keyframes platform-point-pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+}
+
+.animate-platform-point-pulse {
+  animation: platform-point-pulse 0.6s ease-in-out;
+}
+
+/* Faculty adoption chart specific animations */
+@keyframes faculty-bar-grow {
+  from { 
+    height: 0;
+  }
+  to { 
+    height: 100%;
+  }
+}
+
+.animate-faculty-bar-grow {
+  animation: faculty-bar-grow 1s ease-out forwards;
+}
+
+/* Platform features chart specific animations */
+@keyframes platform-segment-grow {
+  from { 
+    stroke-dasharray: 0 1000;
+    opacity: 0;
+  }
+  to { 
+    stroke-dasharray: 1000 0;
+    opacity: 1;
+  }
+}
+
+.animate-platform-segment-grow {
+  animation: platform-segment-grow 1.5s ease-out forwards;
+}
+
+/* Custom animations for chatbot */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(59, 130, 246, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.8);
+  }
+}
+
+@keyframes bounce-in {
+  0% {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.6s ease-out;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.5s ease-out forwards;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-bounce-in {
+  animation: bounce-in 0.6s ease-out;
+}
+
+/* Smooth transitions for all interactive elements */
+* {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Custom scrollbar for chat */
+.chat-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-scrollbar::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+.chat-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.chat-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Message bubble animations */
+.message-bubble {
+  animation: fade-in 0.3s ease-out;
+}
+
+.message-bubble.user {
+  animation: slide-up 0.3s ease-out;
+}
+
+.message-bubble.assistant {
+  animation: slide-up 0.3s ease-out 0.1s both;
+}
+
+/* Typing indicator animation */
+.typing-indicator {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* Category button hover effects */
+.category-button {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.category-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+/* Gradient text animation */
+.gradient-text {
+  background: linear-gradient(45deg, #3b82f6, #8b5cf6, #06b6d4);
+  background-size: 200% 200%;
+  animation: gradient-shift 3s ease infinite;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}

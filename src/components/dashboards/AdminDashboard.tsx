@@ -52,6 +52,7 @@ import { TeachingLocationsPage } from '../pages/courses/TeachingLocationsPage';
 import { LearningPathsPage } from '../pages/courses/LearningPathsPage';
 import AnalyticsPage from '../../pages/AnalyticsPage';
 import TrainerAdminDashboardPage from './TrainerAdminDashboardPage';
+import { useNavigate } from 'react-router-dom';
 
 
 interface AdminStats {
@@ -83,6 +84,7 @@ export const AdminDashboard: React.FC = () => {
   const [showAIDashboard, setShowAIDashboard] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const navigate = useNavigate();
 
   const handleProfileClick = () => {
     setProfileModalOpen(true);
@@ -1531,6 +1533,7 @@ export const AdminDashboard: React.FC = () => {
               <SidebarItem icon={Brain} label="Predictive Models" active={activeSection === 'predictive-models'} onClick={() => setActiveSection('predictive-models')} />
               <SidebarItem icon={TrendingUp} label="ROI Analysis" active={activeSection === 'roi-analysis'} onClick={() => setActiveSection('roi-analysis')} />
               <SidebarItem icon={FileText} label="Reports" active={activeSection === 'reports'} onClick={() => setActiveSection('reports')} />
+              <SidebarItem icon={BarChart3} label="Analytics Dashboard" active={false} onClick={() => navigate('/analytics-dashboard')} />
             </div>
             <div className="mb-2">
               <div className="text-sm text-gray-400 uppercase mb-1">Settings</div>

@@ -189,3 +189,34 @@ export interface Competency {
   skills: string[];
   assessmentCriteria: string[];
 }
+
+export interface ChatCategory {
+  id: string;
+  name: string;
+  nameAr: string;
+  description: string;
+  descriptionAr: string;
+  icon: string;
+  color: string;
+  systemPrompt: string;
+  systemPromptAr: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  content: string;
+  role: 'user' | 'assistant';
+  timestamp: number;
+  language: 'en' | 'ar';
+}
+
+export interface CategoryChat {
+  categoryId: string;
+  messages: ChatMessage[];
+}
+
+export interface ChatbotState {
+  selectedCategory: ChatCategory | null;
+  categoryChats: Record<string, CategoryChat>;
+  isCategoryView: boolean;
+}

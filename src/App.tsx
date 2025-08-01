@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider } from './context/AuthContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { EnhancedChatProvider } from './context/EnhancedChatContext';
 import { UsersDashboard } from './components/dashboards/admin/UsersDashboard';
 import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
@@ -13,6 +14,7 @@ import SchoolsPage from './pages/SchoolsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Toaster } from './components/ui/Toaster';
+import { EnhancedAIBuddyChat } from './components/EnhancedAIBuddyChat';
 import './i18n';
 import AddCategoryPage from './pages/AddCategoryPage';
 import { SchoolManagementRoutes } from './components/routes/SchoolManagementRoutes';
@@ -25,6 +27,7 @@ import ClusterDashboard from './components/dashboards/clusterDashboard';
 import CourseViewerPage from './pages/CourseViewerPage';
 import { AssignTrainerToCoursePage } from './components/users/AssignTrainerToCoursePage';
 import { ManageCourseGroupsPage } from './pages/ManageCourseGroupsPage';
+import { AIAnalyticsDashboard } from './components/dashboards/AIAnalyticsDashboard';
  
 function DashboardRouteWrapper() {
   const { user, loading } = useAuth();
@@ -50,117 +53,131 @@ function App() {
     <ThemeProvider>
       <LanguageProvider>
         <AuthProvider>
-          <Router>
-            <div className="bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
-              <Routes>
-                <Route path="/" element={<HomePage />} />
-                <Route path="/login/:role" element={<LoginPage />} />
-                <Route
-                  path="/dashboard/*"
-                  element={
-                    <ProtectedRoute>
-                      <DashboardRouteWrapper />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/courses"
-                  element={
-                    <ProtectedRoute>
-                      <CoursesPage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/courses/:id"
-                  element={
-                    <ProtectedRoute>
-                      <CourseDetailPage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/schools123"
-                  element={
-                    <ProtectedRoute>
-                      <SchoolsPage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/settings"
-                  element={
-                    <ProtectedRoute>
-                      <SettingsPage />
-                    </ProtectedRoute>
-                  }
-                />
-               
-                <Route
-                  path="/school/*"
-                  element={
-                    <ProtectedRoute>
-                      <SchoolManagementRoutes />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/courses-categories/*"
-                  element={
-                    <ProtectedRoute>
-                      <CourseCategoryRoutes />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/users"
-                  element={
-                    <ProtectedRoute>
-                      <UsersDashboard />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/teacher-dashboard/*"
-                  element={
-                    <ProtectedRoute>
-                      <TeacherDashboardRoutes />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/school-admin-dashboard"
-                  element={
-                    <ProtectedRoute>
-                      <SchoolAdminDashboardPage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/assign-trainer-to-course"
-                  element={
-                    <ProtectedRoute>
-                      <AssignTrainerToCoursePage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/clusterdashboard"
-                  element={
-                    <ProtectedRoute>
-                      <ClusterDashboard />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route path="/course/:courseId/view" element={<ProtectedRoute><CourseViewerPage /></ProtectedRoute>} />
+          <EnhancedChatProvider>
+            <Router>
+              <div className="bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
+                <Routes>
+                  <Route path="/" element={<HomePage />} />
+                  <Route path="/login/:role" element={<LoginPage />} />
+                  <Route
+                    path="/dashboard/*"
+                    element={
+                      <ProtectedRoute>
+                        <DashboardRouteWrapper />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/courses"
+                    element={
+                      <ProtectedRoute>
+                        <CoursesPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/courses/:id"
+                    element={
+                      <ProtectedRoute>
+                        <CourseDetailPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/schools123"
+                    element={
+                      <ProtectedRoute>
+                        <SchoolsPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/settings"
+                    element={
+                      <ProtectedRoute>
+                        <SettingsPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                 
+                  <Route
+                    path="/school/*"
+                    element={
+                      <ProtectedRoute>
+                        <SchoolManagementRoutes />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/courses-categories/*"
+                    element={
+                      <ProtectedRoute>
+                        <CourseCategoryRoutes />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/users"
+                    element={
+                      <ProtectedRoute>
+                        <UsersDashboard />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/teacher-dashboard/*"
+                    element={
+                      <ProtectedRoute>
+                        <TeacherDashboardRoutes />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/school-admin-dashboard"
+                    element={
+                      <ProtectedRoute>
+                        <SchoolAdminDashboardPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/assign-trainer-to-course"
+                    element={
+                      <ProtectedRoute>
+                        <AssignTrainerToCoursePage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/clusterdashboard"
+                    element={
+                      <ProtectedRoute>
+                        <ClusterDashboard />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route path="/course/:courseId/view" element={<ProtectedRoute><CourseViewerPage /></ProtectedRoute>} />
 
-                <Route path="/course/groups/:courseId" element={<ManageCourseGroupsPage />} />
+                  <Route path="/course/groups/:courseId" element={<ManageCourseGroupsPage />} />
+                  <Route
+                    path="/analytics-dashboard"
+                    element={
+                      <ProtectedRoute>
+                        <AIAnalyticsDashboard />
+                      </ProtectedRoute>
+                    }
+                  />
 
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
-              <Toaster />
-            </div>
-          </Router>
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+                
+                {/* Enhanced AI Buddy Chat Component */}
+                <EnhancedAIBuddyChat />
+                
+                <Toaster />
+              </div>
+            </Router>
+          </EnhancedChatProvider>
         </AuthProvider>
       </LanguageProvider>
     </ThemeProvider>

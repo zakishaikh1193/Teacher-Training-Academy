@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Bell, Plus } from 'lucide-react';
 import { Button } from '../ui/Button';
+import { useNavigate } from 'react-router-dom';
 
 interface DashboardHeaderProps {
   user?: any;
@@ -11,6 +12,7 @@ interface DashboardHeaderProps {
 export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ user, onProfile, onLogout }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -40,8 +42,8 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ user, onProfil
           <Bell className="w-6 h-6 text-blue-600" />
           <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full px-1">3</span>
         </button>
-        <Button className="flex items-center gap-2" variant="primary">
-          <Plus className="w-4 h-4" /> New Report
+        <Button className="flex items-center gap-2" variant="primary" onClick={() => navigate('/analytics-dashboard')}>
+          <Plus className="w-4 h-4" /> Analytics Dashboard
         </Button>
         <div className="relative" ref={dropdownRef}>
           <button
