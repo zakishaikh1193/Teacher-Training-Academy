@@ -29,7 +29,8 @@ import {
   Coins,
   Share2,
   Calendar,
-  HelpCircle
+  HelpCircle,
+  User as UserIcon
 } from 'lucide-react';
 import { LoadingSpinner } from '../LoadingSpinner';
 import { CourseDetailsModal } from '../CourseDetailsModal';
@@ -53,6 +54,20 @@ import { LearningPathsPage } from '../pages/courses/LearningPathsPage';
 import AnalyticsPage from '../../pages/AnalyticsPage';
 import TrainerAdminDashboardPage from './TrainerAdminDashboardPage';
 import { useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
+import ManageCourseContentPage from '../pages/courses/ManageCourseContentPage';
+import { AssignTrainerToCoursePage } from '../users/AssignTrainerToCoursePage';
+import { CreateSchoolPage } from '../pages/schools/CreateSchoolPage';
+import { EditSchoolPage } from '../pages/schools/EditSchoolPage';
+import { AdvancedSchoolSettings } from '../pages/schools/AdvancedSchoolSettings';
+import { ManageSchoolsPage } from '../pages/schools/ManageSchoolsPage';
+import { ManageDepartments } from '../pages/schools/ManageDepartments';
+import { OptionalProfiles } from '../pages/schools/OptionalProfiles';
+import { RestrictCapabilities } from '../pages/schools/RestrictCapabilities';
+import { ImportSchools } from '../pages/schools/ImportSchools';
+import { EmailTemplates } from '../pages/schools/EmailTemplates';
+import SchoolListPage from '../pages/schools/SchoolListPage.tsx';
+
 
 
 interface AdminStats {
@@ -84,7 +99,10 @@ export const AdminDashboard: React.FC = () => {
   const [showAIDashboard, setShowAIDashboard] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+
   const navigate = useNavigate();
+  const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
+  const location = useLocation();
 
   const handleProfileClick = () => {
     setProfileModalOpen(true);
@@ -110,12 +128,30 @@ export const AdminDashboard: React.FC = () => {
     { id: 'collaboration-engagement', icon: MessageSquare, label: 'Collaboration Engagement', labelAr: 'مشاركة التعاون' },
     { id: 'work-satisfaction', icon: Briefcase, label: 'Work Satisfaction', labelAr: 'رضا العمل' },
     { id: 'platform-adoption', icon: Smartphone, label: 'Platform Adoption', labelAr: 'اعتماد المنصة' },
-    { id: 'ai-analytics', icon: Brain, label: 'AI Analytics Dashboard', labelAr: 'لوحة تحكم الذكاء الاصطناعي' }
+    { id: 'ai-analytics', icon: Brain, label: 'AI Analytics Dashboard', labelAr: 'لوحة تحكم الذكاء الاصطناعي' },
+    { id: 'assign-trainer', icon: UserIcon, label: 'Assign Trainer to Course', labelAr: 'تعيين مدرب للدورة' }
   ];
 
   useEffect(() => {
     fetchDashboardData();
   }, []);
+
+  // Handle URL parameters for section navigation
+  useEffect(() => {
+    const urlParams = new URLSearchParams(location.search);
+    const sectionParam = urlParams.get('section');
+    const courseId = urlParams.get('courseId');
+    
+    if (sectionParam && sidebarItems.some(item => item.id === sectionParam)) {
+      setActiveSection(sectionParam);
+    }
+    
+    if (courseId) {
+      setSelectedCourseId(courseId);
+    } else {
+      setSelectedCourseId(null);
+    }
+  }, [location.search]);
 
   const fetchDashboardData = async () => {
     setLoading(true);
@@ -638,7 +674,25 @@ export const AdminDashboard: React.FC = () => {
       case 'enrollments':
         return <EnrollmentsSection />;
       case 'schools':
-        return <ManageSchools />;
+        return <ManageSchools onSectionChange={setActiveSection} />;
+      case 'create-school':
+        return <CreateSchoolPage />;
+      case 'edit-school':
+        return <EditSchoolPage />;
+      case 'advanced-school-settings':
+        return <AdvancedSchoolSettings />;
+      case 'manage-schools-list':
+        return <SchoolListPage />;
+      case 'manage-departments':
+        return <ManageDepartments />;
+      case 'optional-profiles':
+        return <OptionalProfiles />;
+      case 'restrict-capabilities':
+        return <RestrictCapabilities />;
+      case 'import-schools':
+        return <ImportSchools />;
+      case 'email-templates':
+        return <EmailTemplates />;
       case 'users':
         return <UsersDashboard />;
       case 'courses-categories':
@@ -695,6 +749,8 @@ export const AdminDashboard: React.FC = () => {
         return <ManageCoursesCategories onSectionChange={(section) => setActiveSection(section)} />;
       case 'analytics':
         return <AnalyticsPage />;
+      case 'assign-trainer':
+        return <AssignTrainerToCoursePage />;
       
 
       default:
@@ -1566,6 +1622,13 @@ export const AdminDashboard: React.FC = () => {
           // Optionally, call your real API here
         }}
       />
+      {selectedCourse && (
+        <CourseDetailsModal
+          course={selectedCourse}
+          isOpen={true}
+          onClose={() => setSelectedCourse(null)}
+        />
+      )}
     </div>
   );
 };

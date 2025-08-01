@@ -28,6 +28,7 @@ import CourseViewerPage from './pages/CourseViewerPage';
 import { AssignTrainerToCoursePage } from './components/users/AssignTrainerToCoursePage';
 import { ManageCourseGroupsPage } from './pages/ManageCourseGroupsPage';
 import { AIAnalyticsDashboard } from './components/dashboards/AIAnalyticsDashboard';
+import ManageCourseContentPage from './components/pages/courses/ManageCourseContentPage';
  
 function DashboardRouteWrapper() {
   const { user, loading } = useAuth();
@@ -158,7 +159,9 @@ function App() {
                   />
                   <Route path="/course/:courseId/view" element={<ProtectedRoute><CourseViewerPage /></ProtectedRoute>} />
 
-                  <Route path="/course/groups/:courseId" element={<ManageCourseGroupsPage />} />
+                <Route path="/course-timeline/:courseId" element={<ProtectedRoute><ManageCourseContentPage /></ProtectedRoute>} />
+
+                <Route path="/course/groups/:courseId" element={<ManageCourseGroupsPage />} />
                   <Route
                     path="/analytics-dashboard"
                     element={
@@ -167,6 +170,7 @@ function App() {
                       </ProtectedRoute>
                     }
                   />
+
 
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>

@@ -7,24 +7,16 @@ export const LearningPathsPage: React.FC = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="space-y-6">
+    <div className="w-full min-h-screen">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={() => navigate('/courses-categories')}>
-            <ArrowLeft className="w-4 h-4" />
-            Back to Courses & Categories
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              Learning Paths
-            </h1>
-            <p className="text-gray-600 dark:text-gray-300">
-              Create structured learning journeys and pathways
-            </p>
-          </div>
-        </div>
+        {/* Removed back button as per new navigation policy */}
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Learning Paths</h1>
       </div>
-
+      <div>
+        <p className="text-gray-600 dark:text-gray-300">
+          Create structured learning journeys and pathways
+        </p>
+      </div>
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
         <div className="flex items-center gap-3 mb-4">
           <Route className="w-6 h-6 text-blue-600" />

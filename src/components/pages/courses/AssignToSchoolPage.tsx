@@ -184,20 +184,15 @@ export const AssignToSchoolPage: React.FC = () => {
   // --- Render ---
 
   return (
-    <div className="space-y-8">
+    <div className="w-full min-h-screen">
       {/* PAGE HEADER */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-6">
+        {/* Removed back button as per new navigation policy */}
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" onClick={() => navigate('/courses-categories')}>
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Assign to School</h1>
-            <p className="text-gray-500 dark:text-gray-400">
-              Assign courses to schools and manage license counts.
-            </p>
-          </div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Assign Course to School</h1>
+          <p className="text-gray-500 dark:text-gray-400">
+            Assign courses to schools and manage license counts.
+          </p>
         </div>
       </div>
 

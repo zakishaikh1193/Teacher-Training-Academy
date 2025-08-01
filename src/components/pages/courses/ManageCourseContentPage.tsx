@@ -161,34 +161,36 @@ const ManageCourseContentPage: React.FC = () => {
   const [assignmentCutoffDate, setAssignmentCutoffDate] = useState('');
   const [assignmentMaxGrade, setAssignmentMaxGrade] = useState(100);
   
-  const [roles, setRoles] = useState<any[]>([]);
-  const [selectedRoleVisibility, setSelectedRoleVisibility] = useState<number[]>([]);
+ const [groups, setGroups] = useState<any[]>([]);
+  const [selectedGroupVisibility, setSelectedGroupVisibility] = useState<number[]>([]);
 
-  useEffect(() => {
+ useEffect(() => {
     const loadInitialData = async () => {
         setLoading(true);
         setError(null);
         try {
-            const [sectionData, rolesData] = await Promise.all([
-                getCourseContents(courseId!),
-                coursesService.getAvailableRoles()
+            if (!courseId) return;
+            // Fetch course content AND the groups specific to this course
+            const [sectionData, groupsData] = await Promise.all([
+                getCourseContents(courseId),
+                contentBuilderService.getCourseGroups(Number(courseId))
             ]);
             setSections(sectionData);
-            setRoles(rolesData);
+            setGroups(groupsData);
         } catch (err: any) {
             setError(err.message || 'Failed to fetch initial page data');
         } finally {
             setLoading(false);
         }
     };
-    if (courseId) {
-        loadInitialData();
-    }
+    loadInitialData();
   }, [courseId]);
 
-  const fetchContent = async () => {
+ const fetchContent = async () => {
+    // This function can be used to refresh the content list after an action
     try {
-      const sectionData = await getCourseContents(courseId!);
+      if (!courseId) return;
+      const sectionData = await getCourseContents(courseId);
       setSections(sectionData);
     } catch (err: any) {
       setError(err.message || 'Failed to refresh course content');
@@ -197,7 +199,7 @@ const ManageCourseContentPage: React.FC = () => {
 
   const handleOpenAddModal = (sectionNumber: number) => {
     setCurrentSection(sectionNumber);
-    setSelectedRoleVisibility([]);
+    setSelectedGroupVisibility([]); // Reset selected groups when opening modal
     setShowAddModal(true);
   };
   
@@ -259,19 +261,24 @@ const ManageCourseContentPage: React.FC = () => {
         activityName = labelText;
       }
 
-        if (selectedRoleVisibility.length > 0) {
+        // --- NEW: Build availability condition if GROUPS were selected ---
+      if (selectedGroupVisibility.length > 0) {
         const availabilityCondition = {
-          'op': '|',
-          'c': selectedRoleVisibility.map(roleId => ({ 'type': 'role', 'id': roleId })),
-          'showc': selectedRoleVisibility.map(() => true),
-          // --- THE FIX ---
-          // The 'show' property must be a boolean `true`, not the number `1`.
-          'show': true 
+          'op': '|', // Show if user is in ANY of the selected groups
+          'c': selectedGroupVisibility.map(groupId => ({ 'type': 'group', 'id': groupId })),
+          'showc': selectedGroupVisibility.map(() => true),
+          'show': true // Enable the restriction
         };
         options.push({ name: 'availability', value: JSON.stringify(availabilityCondition) });
       }
 
-      await contentBuilderService.addActivity(Number(courseId), currentSection, modname, activityName, options);
+     await contentBuilderService.addActivity(
+        Number(courseId), 
+        currentSection, 
+        modname, 
+        activityName, 
+        options
+      );
 
       setShowAddModal(false);
       setFile(null); setFileTitle(''); setFileDesc('');
@@ -283,8 +290,8 @@ const ManageCourseContentPage: React.FC = () => {
       setQuizTitle(''); setQuizDesc('');
       setScormFile(null); setScormTitle(''); setScormDesc('');
       setAssignmentDueDate(''); setAssignmentCutoffDate(''); setAssignmentMaxGrade(100);
-      setSelectedRoleVisibility([]);
-      await fetchContent();
+      setSelectedGroupVisibility([]);
+       await fetchContent();
     } catch (err: any) {
       setError(err.message || 'Failed to add content');
     } finally {
@@ -464,6 +471,8 @@ const ManageCourseContentPage: React.FC = () => {
         </div>
       )}
 
+      {/* --- MODALS START HERE --- */}
+      
       {/* MODAL: Add Content */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 p-4">
@@ -481,58 +490,40 @@ const ManageCourseContentPage: React.FC = () => {
               </div>
               {addType === 'resource' && (
                 <>
-                  <div><label className="block font-medium mb-1">File</label><input type="file" onChange={e => setFile(e.target.files?.[0] || null)} className="w-full" /></div>
-                  <div><label className="block font-medium mb-1">Title</label><input type="text" value={fileTitle} onChange={e => setFileTitle(e.target.value)} className="w-full border rounded px-3 py-2" /></div>
+                  <div><label className="block font-medium mb-1">File</label><input type="file" onChange={e => setFile(e.target.files?.[0] || null)} className="w-full" required /></div>
+                  <div><label className="block font-medium mb-1">Title</label><input type="text" value={fileTitle} onChange={e => setFileTitle(e.target.value)} className="w-full border rounded px-3 py-2" required /></div>
                   <div><label className="block font-medium mb-1">Description</label><textarea value={fileDesc} onChange={e => setFileDesc(e.target.value)} className="w-full border rounded px-3 py-2" /></div>
                 </>
               )}
               {addType === 'page' && (
                 <>
-                  <div><label className="block font-medium mb-1">Title</label><input type="text" value={pageTitle} onChange={e => setPageTitle(e.target.value)} className="w-full border rounded px-3 py-2" /></div>
-                  <div><label className="block font-medium mb-1">Content</label><textarea value={pageContent} onChange={e => setPageContent(e.target.value)} className="w-full border rounded px-3 py-2 min-h-[100px]" /></div>
+                  <div><label className="block font-medium mb-1">Title</label><input type="text" value={pageTitle} onChange={e => setPageTitle(e.target.value)} className="w-full border rounded px-3 py-2" required /></div>
+                  <div><label className="block font-medium mb-1">Content (HTML)</label><textarea value={pageContent} onChange={e => setPageContent(e.target.value)} className="w-full border rounded px-3 py-2 min-h-[100px]" required /></div>
                 </>
               )}
               {addType === 'url' && (
                 <>
-                  <div><label className="block font-medium mb-1">Title</label><input type="text" value={urlTitle} onChange={e => setUrlTitle(e.target.value)} className="w-full border rounded px-3 py-2" /></div>
-                  <div><label className="block font-medium mb-1">URL</label><input type="url" value={urlValue} onChange={e => setUrlValue(e.target.value)} className="w-full border rounded px-3 py-2" /></div>
+                  <div><label className="block font-medium mb-1">Title</label><input type="text" value={urlTitle} onChange={e => setUrlTitle(e.target.value)} className="w-full border rounded px-3 py-2" required /></div>
+                  <div><label className="block font-medium mb-1">URL</label><input type="url" value={urlValue} onChange={e => setUrlValue(e.target.value)} className="w-full border rounded px-3 py-2" required /></div>
                   <div><label className="block font-medium mb-1">Description</label><textarea value={urlDesc} onChange={e => setUrlDesc(e.target.value)} className="w-full border rounded px-3 py-2" /></div>
-                </>
-              )}
-               {addType === 'folder' && (
-                <>
-                  <div><label className="block font-medium mb-1">Title</label><input type="text" value={fileTitle} onChange={e => setFileTitle(e.target.value)} className="w-full border rounded px-3 py-2" /></div>
-                  <div><label className="block font-medium mb-1">Files</label><input type="file" multiple onChange={e => setFolderFiles(Array.from(e.target.files || []))} className="w-full" /></div>
-                  <div><label className="block font-medium mb-1">Description</label><textarea value={fileDesc} onChange={e => setFileDesc(e.target.value)} className="w-full border rounded px-3 py-2" /></div>
-                </>
-              )}
-              {addType === 'scorm' && (
-                <>
-                  <div><label className="block font-medium mb-1">Title</label><input type="text" value={scormTitle} onChange={e => setScormTitle(e.target.value)} className="w-full border rounded px-3 py-2" /></div>
-                  <div><label className="block font-medium mb-1">SCORM File (.zip)</label><input type="file" accept=".zip" onChange={e => setScormFile(e.target.files?.[0] || null)} className="w-full" /></div>
-                  <div><label className="block font-medium mb-1">Description</label><textarea value={scormDesc} onChange={e => setScormDesc(e.target.value)} className="w-full border rounded px-3 py-2" /></div>
                 </>
               )}
               {addType === 'assignment' && (
                 <>
-                  <div><label className="block font-medium mb-1">Title</label><input type="text" value={assignmentTitle} onChange={e => setAssignmentTitle(e.target.value)} className="w-full border rounded px-3 py-2" /></div>
+                  <div><label className="block font-medium mb-1">Title</label><input type="text" value={assignmentTitle} onChange={e => setAssignmentTitle(e.target.value)} className="w-full border rounded px-3 py-2" required /></div>
                   <div><label className="block font-medium mb-1">Description</label><textarea value={assignmentDesc} onChange={e => setAssignmentDesc(e.target.value)} className="w-full border rounded px-3 py-2" /></div>
                   <div><label className="block font-medium mb-1">Due Date</label><input type="datetime-local" value={assignmentDueDate} onChange={e => setAssignmentDueDate(e.target.value)} className="w-full border rounded px-3 py-2" /></div>
                   <div><label className="block font-medium mb-1">Cutoff Date</label><input type="datetime-local" value={assignmentCutoffDate} onChange={e => setAssignmentCutoffDate(e.target.value)} className="w-full border rounded px-3 py-2" /></div>
                   <div><label className="block font-medium mb-1">Max Grade</label><input type="number" value={assignmentMaxGrade} onChange={e => setAssignmentMaxGrade(Number(e.target.value))} className="w-full border rounded px-3 py-2" min={0} max={100} /></div>
                 </>
               )}
-              {addType === 'quiz' && (
-                <>
-                  <div><label className="block font-medium mb-1">Title</label><input type="text" value={quizTitle} onChange={e => setQuizTitle(e.target.value)} className="w-full border rounded px-3 py-2" /></div>
-                  <div><label className="block font-medium mb-1">Description</label><textarea value={quizDesc} onChange={e => setQuizDesc(e.target.value)} className="w-full border rounded px-3 py-2" /></div>
-                </>
-              )}
               {addType === 'label' && (
                 <>
-                  <div><label className="block font-medium mb-1">Text / Media</label><textarea value={labelText} onChange={e => setLabelText(e.target.value)} className="w-full border rounded px-3 py-2" /></div>
+                  <div><label className="block font-medium mb-1">Text / Media (HTML)</label><textarea value={labelText} onChange={e => setLabelText(e.target.value)} className="w-full border rounded px-3 py-2" required /></div>
                 </>
               )}
+              {/* Add other activity type forms here */}
+
               <div className="border-t pt-4">
                 <label className="block font-medium mb-1 flex items-center gap-2">
                   <Users className="w-4 h-4 text-gray-500" />
@@ -540,19 +531,23 @@ const ManageCourseContentPage: React.FC = () => {
                 </label>
                 <select
                   multiple
-                  value={selectedRoleVisibility.map(String)}
+                  value={selectedGroupVisibility.map(String)}
                   onChange={(e) => 
-                    setSelectedRoleVisibility(Array.from(e.target.selectedOptions, option => Number(option.value)))
+                    setSelectedGroupVisibility(Array.from(e.target.selectedOptions, option => Number(option.value)))
                   }
                   className="w-full border rounded px-3 py-2 bg-white dark:bg-gray-800"
-                  size={5}
+                  size={Math.min(5, groups.length > 0 ? groups.length : 1)}
                 >
-                  {roles.map(role => (
-                    <option key={role.id} value={role.id}>{role.name}</option>
-                  ))}
+                  {groups.length > 0 ? (
+                    groups.map(group => (
+                      <option key={group.id} value={group.id}>{group.name}</option>
+                    ))
+                  ) : (
+                    <option disabled>No groups exist for this course.</option>
+                  )}
                 </select>
                 <p className="text-xs text-gray-500 mt-1">
-                  Hold Ctrl/Cmd to select multiple roles. If none are selected, it's visible to all.
+                  Hold Ctrl/Cmd to select multiple groups. If none, it's visible to all.
                 </p>
               </div>
 
@@ -564,6 +559,8 @@ const ManageCourseContentPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* MODAL: Add Section */}
       {showSectionModal && (
         <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 w-full max-w-md relative">
@@ -572,7 +569,7 @@ const ManageCourseContentPage: React.FC = () => {
             <form onSubmit={handleCreateSection} className="space-y-4">
               <div>
                 <label className="block font-medium mb-1">Section Name (e.g., "Day 1 - July 25th")</label>
-                <input type="text" value={newSectionName} onChange={e => setNewSectionName(e.target.value)} className="w-full border rounded px-3 py-2" />
+                <input type="text" value={newSectionName} onChange={e => setNewSectionName(e.target.value)} className="w-full border rounded px-3 py-2" required />
               </div>
               <div>
                 <label className="block font-medium mb-1">Summary</label>
@@ -583,6 +580,8 @@ const ManageCourseContentPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* MODAL: Batch Import */}
       {showBatchModal && (
         <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 w-full max-w-lg relative">
@@ -591,7 +590,7 @@ const ManageCourseContentPage: React.FC = () => {
             <form onSubmit={handleBatchImport} className="space-y-4">
               <div>
                 <label className="block font-medium mb-1">JSON Structure</label>
-                <textarea value={batchJson} onChange={e => setBatchJson(e.target.value)} className="w-full border rounded px-3 py-2 min-h-[200px] font-mono text-sm" placeholder='[{"section": {"name": "Day 1"}, "activities": [{"modname": "label", "name": "10:00 - Intro"}, {"modname": "page", "name": "..."}]}]'></textarea>
+                <textarea value={batchJson} onChange={e => setBatchJson(e.target.value)} className="w-full border rounded px-3 py-2 min-h-[200px] font-mono text-sm" placeholder='[{"section": {"name": "Day 1"}, "activities": [{"modname": "label", "name": "10:00 - Intro"}, {"modname": "page", "name": "..."}]}]' required></textarea>
               </div>
               {batchError && <div className="text-red-600 text-sm p-2 bg-red-50 rounded-md">{batchError}</div>}
               <Button type="submit" disabled={submitting} className="w-full mt-4">Import Content</Button>
@@ -600,7 +599,7 @@ const ManageCourseContentPage: React.FC = () => {
         </div>
       )}
 
-      {/* --- NEW MODALS for Edit/Delete --- */}
+      {/* MODAL: Edit Section */}
       {showEditSectionModal && (
         <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 w-full max-w-md relative">
@@ -623,6 +622,7 @@ const ManageCourseContentPage: React.FC = () => {
         </div>
       )}
 
+      {/* MODAL: Edit Activity */}
       {showEditActivityModal && (
         <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 w-full max-w-md relative">
@@ -631,9 +631,8 @@ const ManageCourseContentPage: React.FC = () => {
             <form onSubmit={handleUpdateActivity} className="space-y-4">
               <div>
                 <label className="block font-medium mb-1">Activity Name</label>
-                <input type="text" value={editName} onChange={e => setEditName(e.target.value)} className="w-full border rounded px-3 py-2" />
+                <input type="text" value={editName} onChange={e => setEditName(e.target.value)} className="w-full border rounded px-3 py-2" required />
               </div>
-              {/* Note: More complex editing would require fetching all module settings */}
               <Button type="submit" disabled={submitting} className="w-full mt-4">
                 {submitting ? <Loader2 className="animate-spin w-4 h-4 mr-2 inline"/> : null} Save Changes
               </Button>
@@ -642,6 +641,7 @@ const ManageCourseContentPage: React.FC = () => {
         </div>
       )}
 
+      {/* MODAL: Confirm Deletion */}
       {showConfirmDeleteModal && (
         <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 w-full max-w-sm relative">

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { CategoryList } from '../components/admin/CategoryList';
 import { CourseList } from '../components/admin/CourseList';
@@ -13,7 +14,8 @@ import {
   BookOpen, 
   Home, 
   ChevronRight,
-  RefreshCw
+  RefreshCw,
+  ArrowLeft
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Course } from '../types';
@@ -30,6 +32,7 @@ interface Category {
 }
 
 const AddCategoryPage: React.FC = () => {
+  const navigate = useNavigate();
   const [categories, setCategories] = useState<Category[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
@@ -99,7 +102,20 @@ const AddCategoryPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="w-full min-h-screen">
+      {/* Header with Back Button */}
+      <div className="flex items-center gap-4">
+        {/* Removed back button as per new navigation policy */}
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            Course Categories & Courses
+          </h1>
+          <p className="text-gray-600 dark:text-gray-300 mt-2">
+            Manage your course structure and organization
+          </p>
+        </div>
+      </div>
+
       {/* Breadcrumb */}
       <nav className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
         <Home className="w-4 h-4" />
@@ -114,14 +130,7 @@ const AddCategoryPage: React.FC = () => {
 
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Course Categories & Courses
-          </h1>
-          <p className="text-gray-600 dark:text-gray-300 mt-2">
-            Manage your course structure and organization
-          </p>
-        </div>
+        <div></div>
         <Button onClick={handleRefresh} variant="outline">
           <RefreshCw className="w-4 h-4" />
           Refresh

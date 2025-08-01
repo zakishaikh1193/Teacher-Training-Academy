@@ -1,16 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Users, Search, Filter, Download, UserPlus } from 'lucide-react';
 import { Button } from '../../ui/Button';
 import { Input } from '../../ui/Input';
 import { LoadingSpinner } from '../../LoadingSpinner';
-import { coursesService } from '../../../services/coursesService';
 
 export const UserEnrolmentsPage: React.FC = () => {
   const navigate = useNavigate();
+  const [enrollments, setEnrollments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [enrollments, setEnrollments] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
@@ -34,13 +32,10 @@ export const UserEnrolmentsPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="w-full min-h-screen">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={() => navigate('/courses-categories')}>
-            <ArrowLeft className="w-4 h-4" />
-            Back to Courses & Categories
-          </Button>
+          {/* Removed back button as per new navigation policy */}
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
               User Enrollments

@@ -62,7 +62,7 @@ export const CreateSchoolPage: React.FC = () => {
       });
  
       toast.success('School created successfully!');
-      navigate('/school');
+      window.location.href = '/dashboard?section=schools';
     } catch (error) {
       toast.error('Failed to create school. Please try again.');
     } finally {
@@ -79,7 +79,7 @@ export const CreateSchoolPage: React.FC = () => {
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={() => navigate('/school')}>
+          <Button variant="ghost" onClick={() => window.location.href = '/dashboard?section=schools'}>
             <ArrowLeft className="w-4 h-4" />
             Back to Schools
           </Button>
