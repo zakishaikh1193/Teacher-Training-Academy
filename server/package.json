@@ -9,19 +9,26 @@
     "test": "node test-openai.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
+    "axios": "^1.6.0",
+    "bottleneck": "^2.19.5",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
-    "axios": "^1.6.0",
+    "express": "^4.18.2",
+    "node-cron": "^3.0.3",
     "p-limit": "^4.0.0",
-    "bottleneck": "^2.19.5",
-    "winston": "^3.11.0",
-    "node-cron": "^3.0.3"
+    "winston": "^3.11.0"
   },
   "devDependencies": {
+    "@types/node": "^24.1.0",
     "nodemon": "^3.0.1"
   },
-  "keywords": ["chatbot", "openai", "ai", "nodejs", "express"],
+  "keywords": [
+    "chatbot",
+    "openai",
+    "ai",
+    "nodejs",
+    "express"
+  ],
   "author": "Your Name",
   "license": "MIT"
-} 
+}

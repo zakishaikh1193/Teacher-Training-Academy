@@ -36,7 +36,7 @@ Create a `.env` file in the root directory:
 
 ```bash
 # OpenAI API Configuration
-OPENAI_API_KEY=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
+OPENAI_API_KEY=process.env.OPENAI_API_KEY;
 
 # Iomad API Configuration
 VITE_MOODLE_API_URL=https://iomad.bylinelms.com/webservice/rest/server.php

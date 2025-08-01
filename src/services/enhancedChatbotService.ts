@@ -6,7 +6,7 @@ import { chatCategories } from '../data/chatCategories';
 const BACKEND_API_URL = 'http://localhost:3002/api/chatbot';
 
 // OpenAI API Configuration (for direct calls if needed)
-const OPENAI_API_KEY = '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';
+const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
 
 // Iomad API Configuration
