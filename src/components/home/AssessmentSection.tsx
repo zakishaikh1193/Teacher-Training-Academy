@@ -174,7 +174,7 @@ export const AssessmentSection: React.FC = () => {
                 <Button 
                   size="lg" 
                   className="w-full bg-gradient-to-r from-blue-600 to-purple-600"
-                  onClick={() => window.open('https://riyara-dashboard.bylinelms.com/self-assessment/', '_blank')}
+                  onClick={() => window.open('https://assessment.bylinelms.com/', '_blank')}
                 >
                   <BarChart3 className="w-5 h-5" />
                   Start Assessment
