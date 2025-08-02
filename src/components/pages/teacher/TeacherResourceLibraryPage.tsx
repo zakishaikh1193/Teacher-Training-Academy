@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Folder, FileText, FileAudio, FileVideo, FileImage, FileArchive, File } from 'lucide-react';
+import { Folder, FileText, FileAudio, FileVideo, FileImage, FileArchive, File, BookOpen } from 'lucide-react';
 import { apiService } from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
+import { CourseViewer } from '../../../pages/CourseViewerPage';
+import { Course } from '../../../types';
 
 const getFileIcon = (mimetype: string) => {
   if (mimetype.startsWith('image/')) return <FileImage className="w-5 h-5 text-blue-400" />;
@@ -42,6 +44,8 @@ const TeacherResourceLibraryPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [courseFilter, setCourseFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+  const [courses, setCourses] = useState<Course[]>([]);
 
   useEffect(() => {
     async function fetchMaterials() {
@@ -49,9 +53,10 @@ const TeacherResourceLibraryPage: React.FC = () => {
       setError(null);
       try {
         if (!user || !user.id) throw new Error('User not found');
-        const courses = await apiService.getUserCourses(user.id);
+        const fetchedCourses = await apiService.getUserCourses(user.id);
+        setCourses(Array.isArray(fetchedCourses) ? fetchedCourses : []);
         let allFiles: any[] = [];
-        for (const course of courses) {
+        for (const course of fetchedCourses) {
           const contents = await apiService.getCourseContents(String(course.id));
           contents.forEach((section: any) => {
             (section.modules || []).forEach((mod: any) => {
@@ -60,6 +65,7 @@ const TeacherResourceLibraryPage: React.FC = () => {
                   allFiles.push({
                     ...file,
                     courseName: course.fullname,
+                    courseId: course.id
                   });
                 });
               }
@@ -75,6 +81,18 @@ const TeacherResourceLibraryPage: React.FC = () => {
     }
     fetchMaterials();
   }, [user]);
+
+  // If a course is selected, show the CourseViewer
+  if (selectedCourse) {
+    return (
+      <CourseViewer 
+        courseId={selectedCourse.id.toString()}
+        onBack={() => setSelectedCourse(null)}
+        title={`${selectedCourse.fullname} - Learning Pathway`}
+        showBackButton={true}
+      />
+    );
+  }
 
   // Resource type tabs with color
   const typeTabs = [
@@ -171,6 +189,27 @@ const TeacherResourceLibraryPage: React.FC = () => {
           <h1 className="text-3xl font-bold text-gray-900">Resource Library</h1>
         </div>
         <div className="bg-white rounded-3xl shadow-lg p-8 w-full">
+          {/* Header */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">Resource Library</h1>
+                <p className="text-lg text-gray-600 dark:text-gray-300">
+                  Access and manage teaching resources and materials
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setSelectedCourse(courses[0])}
+                  className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                >
+                  <BookOpen className="w-4 h-4" />
+                  View Courses
+                </button>
+              </div>
+            </div>
+          </div>
+
           {/* Resource Type Tabs */}
           <div className="flex gap-2 mb-6">
             {typeTabs.map(tab => (
