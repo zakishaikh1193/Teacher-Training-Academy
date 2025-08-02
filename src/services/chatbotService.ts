@@ -1,8 +1,8 @@
 import axios from 'axios';
-import { User, Course, School, ChatCategory } from '../types';
+import { User, Course, School } from '../types';
 
 // OpenAI API Configuration
-const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
+const OPENAI_API_KEY = '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';
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
 
 // Iomad API Configuration
@@ -130,7 +130,7 @@ export const processChatMessage = async (
 
   try {
     const response = await axios.post(OPENAI_API_URL, {
-      model: 'gpt-4',
+      model: 'gpt-3.5-turbo', // Changed to gpt-3.5-turbo for consistency and cost
       messages,
       max_tokens: 1000,
       temperature: 0.7,
@@ -138,7 +138,8 @@ export const processChatMessage = async (
       headers: {
         'Authorization': `Bearer ${OPENAI_API_KEY}`,
         'Content-Type': 'application/json',
-      }
+      },
+      timeout: 60000 // 60 second timeout for direct OpenAI calls
     });
 
     const assistantMessage = response.data.choices[0]?.message?.content;
@@ -162,12 +163,37 @@ export const processChatMessage = async (
       action: action || 'none'
     };
 
-  } catch (error) {
-    console.error('OpenAI API Error:', error);
+  } catch (error: any) {
+    console.error('OpenAI API Error:', {
+      status: error.response?.status,
+      message: error.response?.data?.error?.message || error.message,
+      code: error.code
+    });
     
-    const errorMessage = language === 'ar' 
-      ? 'عذراً، حدث خطأ في معالجة طلبك. يرجى المحاولة مرة أخرى.'
-      : 'Sorry, there was an error processing your request. Please try again.';
+    let errorMessage: string;
+    
+    // Handle specific error types
+    if (error.response?.status === 429) {
+      errorMessage = language === 'ar'
+        ? 'يسأل العديد من المستخدمين الآن. يرجى المحاولة مرة أخرى خلال لحظات.'
+        : 'Many users are asking right now. Please try again in a few moments.';
+    } else if (error.response?.status === 401) {
+      errorMessage = language === 'ar'
+        ? 'فشل في المصادقة. يرجى التحقق من إعدادات API.'
+        : 'Authentication failed. Please check your API configuration.';
+    } else if (error.code === 'ECONNABORTED') {
+      errorMessage = language === 'ar'
+        ? 'انتهت مهلة الطلب. يبدو أن الخدمة مشغولة، يرجى المحاولة مرة أخرى.'
+        : 'Request took too long. The service seems busy, please try again.';
+    } else if (error.code === 'ENOTFOUND') {
+      errorMessage = language === 'ar'
+        ? 'غير قادر على الاتصال بخدمة الذكاء الاصطناعي. يرجى التحقق من الاتصال.'
+        : 'Unable to connect to AI service. Please check your connection.';
+    } else {
+      errorMessage = language === 'ar' 
+        ? 'عذراً، حدث خطأ مؤقت. يرجى المحاولة مرة أخرى خلال لحظات.'
+        : 'Sorry, there was a temporary issue. Please try again in a few moments.';
+    }
     
     return {
       message: errorMessage,

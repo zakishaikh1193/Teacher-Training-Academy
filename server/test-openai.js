@@ -1,7 +1,7 @@
 const axios = require('axios');
 require('dotenv').config();
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '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';
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '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';
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
 
 async function testOpenAI() {
