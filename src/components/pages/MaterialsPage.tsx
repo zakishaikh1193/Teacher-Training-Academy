@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Folder, FileText, FileAudio, FileVideo, FileImage, FileArchive, File } from 'lucide-react';
+import { Folder, FileText, FileAudio, FileVideo, FileImage, FileArchive, File, BookOpen } from 'lucide-react';
 import { apiService } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { CourseViewer } from '../../pages/CourseViewerPage';
+import { Course } from '../../types';
 
 const getFileIcon = (mimetype: string) => {
   if (mimetype.startsWith('image/')) return <FileImage className="w-5 h-5 text-blue-400" />;
@@ -36,6 +38,8 @@ const MaterialsPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [courseFilter, setCourseFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+  const [courses, setCourses] = useState<Course[]>([]);
 
   // Get unique course names and file types for filters
   const courseOptions = Array.from(new Set(materials.map(m => m.courseName).filter(Boolean)));
@@ -72,9 +76,10 @@ const MaterialsPage: React.FC = () => {
       setError(null);
       try {
         if (!user || !user.id) throw new Error('User not found');
-        const courses = await apiService.getUserCourses(user.id);
+        const fetchedCourses = await apiService.getUserCourses(user.id);
+        setCourses(Array.isArray(fetchedCourses) ? fetchedCourses : []);
         let allFiles: any[] = [];
-        for (const course of courses) {
+        for (const course of fetchedCourses) {
           const contents = await apiService.getCourseContents(String(course.id));
           // contents: array of sections, each with modules
           contents.forEach((section: any) => {
@@ -98,6 +103,7 @@ const MaterialsPage: React.FC = () => {
                     allFiles.push({
                       ...file,
                       courseName: course.fullname,
+                      courseId: course.id
                     });
                   }
                 });
@@ -114,6 +120,18 @@ const MaterialsPage: React.FC = () => {
     }
     fetchMaterials();
   }, [user]);
+
+  // If a course is selected, show the CourseViewer
+  if (selectedCourse) {
+    return (
+      <CourseViewer 
+        courseId={selectedCourse.id.toString()}
+        onBack={() => setSelectedCourse(null)}
+        title={`${selectedCourse.fullname} - Learning Pathway`}
+        showBackButton={true}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen w-full bg-[#f9fafb] flex flex-col items-center justify-start py-12 px-2 md:px-8">

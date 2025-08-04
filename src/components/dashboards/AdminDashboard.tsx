@@ -30,7 +30,8 @@ import {
   Share2,
   Calendar,
   HelpCircle,
-  User as UserIcon
+  User as UserIcon,
+  Image
 } from 'lucide-react';
 import { LoadingSpinner } from '../LoadingSpinner';
 import { CourseDetailsModal } from '../CourseDetailsModal';
@@ -67,6 +68,7 @@ import { RestrictCapabilities } from '../pages/schools/RestrictCapabilities';
 import { ImportSchools } from '../pages/schools/ImportSchools';
 import { EmailTemplates } from '../pages/schools/EmailTemplates';
 import SchoolListPage from '../pages/schools/SchoolListPage.tsx';
+import ActivityIconGallery from '../ActivityIconGallery';
 
 
 
@@ -129,7 +131,8 @@ export const AdminDashboard: React.FC = () => {
     { id: 'work-satisfaction', icon: Briefcase, label: 'Work Satisfaction', labelAr: 'رضا العمل' },
     { id: 'platform-adoption', icon: Smartphone, label: 'Platform Adoption', labelAr: 'اعتماد المنصة' },
     { id: 'ai-analytics', icon: Brain, label: 'AI Analytics Dashboard', labelAr: 'لوحة تحكم الذكاء الاصطناعي' },
-    { id: 'assign-trainer', icon: UserIcon, label: 'Assign Trainer to Course', labelAr: 'تعيين مدرب للدورة' }
+    { id: 'assign-trainer', icon: UserIcon, label: 'Assign Trainer to Course', labelAr: 'تعيين مدرب للدورة' },
+    { id: 'activity-icons', icon: Image, label: 'Activity Icons Gallery', labelAr: 'معرض أيقونات الأنشطة' }
   ];
 
   useEffect(() => {
@@ -751,6 +754,8 @@ export const AdminDashboard: React.FC = () => {
         return <AnalyticsPage />;
       case 'assign-trainer':
         return <AssignTrainerToCoursePage />;
+      case 'activity-icons':
+        return <ActivityIconGallery />;
       
 
       default:
