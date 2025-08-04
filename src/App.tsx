@@ -24,11 +24,12 @@ import { useAuth } from './context/AuthContext';
 import TeacherDashboardRoutes from './components/routes/TeacherDashboardRoutes';
 import SchoolAdminDashboardPage from './components/pages/courses/SchoolAdminDashboardPage';
 import ClusterDashboard from './components/dashboards/clusterDashboard';
-import CourseViewerPage from './pages/CourseViewerPage';
+import CourseViewerPage, { CourseViewer } from './pages/CourseViewerPage';
 import { AssignTrainerToCoursePage } from './components/users/AssignTrainerToCoursePage';
 import { ManageCourseGroupsPage } from './pages/ManageCourseGroupsPage';
 import { AIAnalyticsDashboard } from './components/dashboards/AIAnalyticsDashboard';
 import ManageCourseContentPage from './components/pages/courses/ManageCourseContentPage';
+import ActivityIconGallery from './components/ActivityIconGallery';
  
 function DashboardRouteWrapper() {
   const { user, loading } = useAuth();
@@ -162,6 +163,8 @@ function App() {
                 <Route path="/course-timeline/:courseId" element={<ProtectedRoute><ManageCourseContentPage /></ProtectedRoute>} />
 
                 <Route path="/course/groups/:courseId" element={<ManageCourseGroupsPage />} />
+                
+                <Route path="/activity-icons" element={<ProtectedRoute><ActivityIconGallery /></ProtectedRoute>} />
                   <Route
                     path="/analytics-dashboard"
                     element={
