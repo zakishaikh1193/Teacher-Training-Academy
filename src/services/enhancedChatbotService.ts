@@ -5,20 +5,9 @@ import { chatCategories } from '../data/chatCategories';
 // Backend API Configuration
 const BACKEND_API_URL = 'http://localhost:3002/api/chatbot';
 
-// OpenAI API Configuration (for direct calls if needed)
-const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
-const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
-
 // Iomad API Configuration
 const IOMAD_API_URL = 'https://iomad.bylinelms.com/webservice/rest/server.php';
 const IOMAD_TOKEN = '4a2ba2d6742afc7d13ce4cf486ba7633';
-
-export interface ChatbotResponse {
-  message: string;
-  data?: any;
-  language: 'en' | 'ar';
-  action?: 'fetch_courses' | 'fetch_schools' | 'fetch_users' | 'fetch_analytics' | 'none';
-}
 
 // Language detection function
 export const detectLanguage = (text: string): 'en' | 'ar' => {
@@ -107,7 +96,17 @@ export const fetchUsers = async (): Promise<User[]> => {
   }
 };
 
-// Enhanced chatbot function with category support - now calls backend
+export interface ChatbotResponse {
+  message: string;
+  data?: any;
+  language: 'en' | 'ar';
+  action?: 'fetch_courses' | 'fetch_schools' | 'fetch_users' | 'fetch_analytics' | 'none';
+  requestId?: string;
+  responseTime?: number;
+  fallback?: boolean;
+  graceful?: boolean;
+}
+
 export const processCategoryChatMessage = async (
   userMessage: string,
   category: ChatCategory,
@@ -115,29 +114,120 @@ export const processCategoryChatMessage = async (
   conversationHistory: ChatMessage[] = [],
   selectedLanguage: 'en' | 'ar' = 'en'
 ): Promise<ChatbotResponse> => {
+  const startTime = Date.now();
+  
   try {
-    // Call our backend API instead of OpenAI directly
+    console.log('🔄 Sending request to backend:', {
+      message: userMessage.substring(0, 50) + '...',
+      category: category.id,
+      language: selectedLanguage,
+      conversationHistoryLength: conversationHistory.length,
+      timestamp: new Date().toISOString()
+    });
+
     const response = await axios.post(`${BACKEND_API_URL}/chat`, {
       message: userMessage,
       user: user,
       conversationHistory: conversationHistory,
       category: category,
       selectedLanguage: selectedLanguage
+    }, {
+      timeout: 90000, // Increased to 90 seconds to accommodate retries
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+
+    const requestTime = Date.now() - startTime;
+    
+    console.log('✅ Backend response received:', {
+      messageLength: response.data.message?.length || 0,
+      hasData: !!response.data.data,
+      action: response.data.action,
+      requestId: response.data.requestId,
+      responseTime: response.data.responseTime,
+      frontendRequestTime: `${requestTime}ms`,
+      graceful: response.data.graceful || false
     });
 
     return response.data;
-  } catch (error) {
-    console.error('Backend API Error:', error);
+  } catch (error: any) {
+    const requestTime = Date.now() - startTime;
     
-    // Fallback error message
-    const errorMessage = selectedLanguage === 'ar' 
-      ? 'عذراً، حدث خطأ في معالجة طلبك. يرجى المحاولة مرة أخرى.'
-      : 'Sorry, there was an error processing your request. Please try again.';
+    console.error('❌ Backend API Error:', {
+      status: error.response?.status,
+      message: error.response?.data?.error || error.message,
+      requestId: error.response?.data?.requestId,
+      frontendRequestTime: `${requestTime}ms`,
+      errorCode: error.code,
+      timestamp: new Date().toISOString()
+    });
+
+    // Handle specific error types with enhanced messages
+    if (error.response?.status === 401) {
+      const message = selectedLanguage === 'ar'
+        ? 'فشل في المصادقة. يرجى التحقق من إعدادات API.'
+        : 'Authentication failed. Please check your API configuration.';
+      return { message, language: selectedLanguage, action: 'none' };
+    } 
     
+    if (error.response?.status === 429) {
+      // If backend sent a graceful rate limit message, use it
+      if (error.response?.data?.graceful && error.response?.data?.message) {
+        return {
+          message: error.response.data.message,
+          language: selectedLanguage,
+          action: 'none',
+          graceful: true
+        };
+      }
+      const message = selectedLanguage === 'ar'
+        ? 'يسأل العديد من المستخدمين الآن. يرجى المحاولة مرة أخرى خلال لحظات.'
+        : 'Many users are asking right now. Please try again in a few moments.';
+      return { message, language: selectedLanguage, action: 'none' };
+    } 
+    
+    if (error.response?.status === 503) {
+      const message = selectedLanguage === 'ar'
+        ? 'الخدمة غير متاحة مؤقتاً. يرجى المحاولة مرة أخرى.'
+        : 'Service temporarily unavailable. Please try again.';
+      return { message, language: selectedLanguage, action: 'none' };
+    } 
+    
+    if (error.code === 'ECONNABORTED') {
+      const message = selectedLanguage === 'ar'
+        ? 'انتهت مهلة الطلب. يبدو أن الخدمة مشغولة، يرجى المحاولة مرة أخرى.'
+        : 'Request took too long. The service seems busy, please try again.';
+      return { message, language: selectedLanguage, action: 'none' };
+    } 
+    
+    if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
+      const message = selectedLanguage === 'ar'
+        ? 'غير قادر على الاتصال بالخادم. يرجى التحقق من اتصالك بالإنترنت.'
+        : 'Unable to connect to server. Please check your internet connection.';
+      return { message, language: selectedLanguage, action: 'none' };
+    }
+
+    // If backend sent a graceful error message, use it
+    if (error.response?.data?.graceful && error.response?.data?.message) {
+      return {
+        message: error.response.data.message,
+        language: selectedLanguage,
+        action: 'none',
+        graceful: true
+      };
+    }
+
+    // Default fallback message
+    const errorMessage = selectedLanguage === 'ar'
+      ? 'عذراً، حدث خطأ مؤقت. يرجى المحاولة مرة أخرى خلال لحظات.'
+      : 'Sorry, there was a temporary issue. Please try again in a few moments.';
+
     return {
       message: errorMessage,
       language: selectedLanguage,
-      action: 'none'
+      action: 'none',
+      fallback: true
     };
   }
 }; 

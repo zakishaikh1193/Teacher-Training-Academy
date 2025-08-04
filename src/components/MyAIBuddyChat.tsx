@@ -102,13 +102,23 @@ export const MyAIBuddyChat: React.FC<MyAIBuddyChatProps> = ({ isOpen, onToggle }
         setMessages(prev => [...prev, dataMsg]);
       }
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error processing message:', error);
+      
+      // Use the error message from the service if available, otherwise fallback
+      let errorMessage: string;
+      
+      if (error.message) {
+        errorMessage = error.message;
+      } else {
+        errorMessage = selectedLanguage === 'ar' 
+          ? 'عذراً، حدث خطأ في معالجة رسالتك. يرجى المحاولة مرة أخرى.'
+          : 'Sorry, there was an error processing your message. Please try again.';
+      }
+      
       const errorMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
-        content: selectedLanguage === 'ar' 
-          ? 'عذراً، حدث خطأ في معالجة رسالتك. يرجى المحاولة مرة أخرى.'
-          : 'Sorry, there was an error processing your message. Please try again.',
+        content: errorMessage,
         role: 'assistant',
         timestamp: Date.now(),
         language: selectedLanguage
@@ -176,33 +186,33 @@ export const MyAIBuddyChat: React.FC<MyAIBuddyChatProps> = ({ isOpen, onToggle }
     <>
       <button
         onClick={onToggle}
-        className={`fixed bottom-6 right-6 z-50 p-4 rounded-full shadow-lg transition-all duration-300 ${
+        className={`fixed bottom-6 right-3 sm:right-6 z-50 p-3 sm:p-4 rounded-full shadow-lg transition-all duration-300 ${
           isOpen 
             ? 'bg-red-500 hover:bg-red-600 text-white' 
             : 'bg-blue-600 hover:bg-blue-700 text-white'
         }`}
         aria-label={isOpen ? 'Close chat' : 'Open chat'}
       >
-        {isOpen ? <X size={24} /> : <MessageSquare size={24} />}
+        {isOpen ? <X size={20} className="sm:w-6 sm:h-6" /> : <MessageSquare size={20} className="sm:w-6 sm:h-6" />}
       </button>
 
       {isOpen && (
-        <div className="fixed bottom-24 right-6 z-40 w-96 h-[500px] bg-white rounded-lg shadow-2xl border border-gray-200 flex flex-col overflow-hidden">
+        <div className="fixed bottom-24 right-3 sm:right-6 z-40 w-[350px] sm:w-[450px] h-[500px] sm:h-[600px] bg-white rounded-lg shadow-2xl border border-gray-200 flex flex-col overflow-hidden max-h-[80vh] max-w-[calc(100vw-24px)] sm:max-w-none">
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-lg">
+          <div className="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-lg">
             <div className="flex items-center space-x-2">
-              <Bot size={20} />
-              <span className="font-semibold">My AI Buddy</span>
+              <Bot size={16} className="sm:w-5 sm:h-5" />
+              <span className="font-semibold text-sm sm:text-base">My AI Buddy</span>
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-1 sm:space-x-2">
               <div className="relative">
                 <button
                   onClick={() => setShowLanguageDropdown(!showLanguageDropdown)}
                   className="flex items-center space-x-1 px-2 py-1 rounded bg-white/20 hover:bg-white/30 transition-colors"
                 >
-                  <Globe size={16} />
-                  <span className="text-sm">{selectedLanguage.toUpperCase()}</span>
-                  {showLanguageDropdown ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                  <Globe size={14} className="sm:w-4 sm:h-4" />
+                  <span className="text-xs sm:text-sm">{selectedLanguage.toUpperCase()}</span>
+                  {showLanguageDropdown ? <ChevronUp size={14} className="sm:w-4 sm:h-4" /> : <ChevronDown size={14} className="sm:w-4 sm:h-4" />}
                 </button>
                 {showLanguageDropdown && (
                   <div className="absolute top-full right-0 mt-1 bg-white rounded shadow-lg border border-gray-200 py-1 z-10">
@@ -220,40 +230,40 @@ export const MyAIBuddyChat: React.FC<MyAIBuddyChatProps> = ({ isOpen, onToggle }
                 className="p-1 rounded hover:bg-white/20 transition-colors"
                 title="Clear chat"
               >
-                <X size={16} />
+                <X size={14} className="sm:w-4 sm:h-4" />
               </button>
             </div>
           </div>
 
           {/* Scrollable Message Area */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+          <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4 custom-scrollbar">
             {messages.map((message) => (
               <div
                 key={message.id}
                 className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={`flex items-start space-x-2 max-w-[80%] ${
+                  className={`flex items-start space-x-2 max-w-[90%] sm:max-w-[85%] ${
                     message.role === 'user' ? 'flex-row-reverse space-x-reverse' : ''
                   }`}
                 >
-                  <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                  <div className={`flex-shrink-0 w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center ${
                     message.role === 'user' 
                       ? 'bg-blue-500 text-white' 
                       : 'bg-gray-200 text-gray-600'
                   }`}>
-                    {message.role === 'user' ? <UserIcon size={16} /> : <Bot size={16} />}
+                    {message.role === 'user' ? <UserIcon size={12} className="sm:w-4 sm:h-4" /> : <Bot size={12} className="sm:w-4 sm:h-4" />}
                   </div>
                   
                   <div
-                    className={`px-4 py-2 rounded-lg ${
+                    className={`px-3 py-2 sm:px-4 sm:py-3 rounded-lg ${
                       message.role === 'user'
                         ? 'bg-blue-500 text-white'
                         : 'bg-gray-100 text-gray-800'
                     }`}
                     dir={message.language === 'ar' ? 'rtl' : 'ltr'}
                   >
-                    <div className="whitespace-pre-wrap text-sm">{message.content}</div>
+                    <div className="whitespace-pre-wrap text-xs sm:text-sm">{message.content}</div>
                     <div className={`text-xs mt-1 opacity-70 ${
                       message.role === 'user' ? 'text-blue-100' : 'text-gray-500'
                     }`}>
@@ -267,13 +277,13 @@ export const MyAIBuddyChat: React.FC<MyAIBuddyChatProps> = ({ isOpen, onToggle }
             {isLoading && (
               <div className="flex justify-start">
                 <div className="flex items-start space-x-2">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center">
-                    <Bot size={16} />
+                  <div className="flex-shrink-0 w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center">
+                    <Bot size={12} className="sm:w-4 sm:h-4" />
                   </div>
-                  <div className="px-4 py-2 rounded-lg bg-gray-100">
+                  <div className="px-3 py-2 sm:px-4 sm:py-3 rounded-lg bg-gray-100">
                     <div className="flex items-center space-x-2">
-                      <Loader2 size={16} className="animate-spin" />
-                      <span className="text-sm text-gray-600">
+                      <Loader2 size={14} className="sm:w-4 sm:h-4 animate-spin" />
+                      <span className="text-xs sm:text-sm text-gray-600">
                         {selectedLanguage === 'ar' ? 'جاري الكتابة...' : 'Typing...'}
                       </span>
                     </div>
@@ -286,29 +296,32 @@ export const MyAIBuddyChat: React.FC<MyAIBuddyChatProps> = ({ isOpen, onToggle }
           </div>
 
           {/* Input Section */}
-          <div className="p-4 border-t border-gray-200">
+          <div className="p-3 sm:p-4 border-t border-gray-200 bg-gray-50">
             <div className="flex space-x-2">
-              <input
-                ref={inputRef}
-                type="text"
-                value={inputMessage}
-                onChange={(e) => setInputMessage(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder={
-                  selectedLanguage === 'ar' 
-                    ? 'اكتب رسالتك هنا...' 
-                    : 'Type your message here...'
-                }
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                dir={selectedLanguage === 'ar' ? 'rtl' : 'ltr'}
-                disabled={isLoading}
-              />
+              <div className="flex-1 relative">
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={inputMessage}
+                  onChange={(e) => setInputMessage(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder={
+                    selectedLanguage === 'ar' 
+                      ? 'اكتب رسالتك هنا...' 
+                      : 'Type your message here...'
+                  }
+                  className="w-full px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs sm:text-sm bg-white"
+                  dir={selectedLanguage === 'ar' ? 'rtl' : 'ltr'}
+                  disabled={isLoading}
+                />
+              </div>
               <button
                 onClick={handleSendMessage}
                 disabled={!inputMessage.trim() || isLoading}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="px-3 py-2 sm:px-4 sm:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center min-w-[44px] sm:min-w-[52px]"
+                title={selectedLanguage === 'ar' ? 'إرسال' : 'Send'}
               >
-                <Send size={16} />
+                <Send size={14} className="sm:w-[18px] sm:h-[18px]" />
               </button>
             </div>
           </div>

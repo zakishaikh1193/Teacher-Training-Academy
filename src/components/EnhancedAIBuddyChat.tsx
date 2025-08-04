@@ -8,7 +8,6 @@ import {
   Send, 
   Bot, 
   User as UserIcon, 
-  Loader2, 
   Globe, 
   ChevronDown, 
   ChevronUp,
@@ -121,13 +120,26 @@ export const EnhancedAIBuddyChat: React.FC = () => {
         addMessageToCategory(selectedCategory.id, dataMsg);
       }
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error processing message:', error);
+      
+      // The enhanced service now returns graceful error responses instead of throwing
+      // But if it does throw, handle it gracefully
+      let errorMessage: string;
+      
+      if (error.message) {
+        // Use the error message from the service if available
+        errorMessage = error.message;
+      } else {
+        // Fallback to generic message
+        errorMessage = selectedLanguage === 'ar' 
+          ? 'عذراً، حدث خطأ في معالجة رسالتك. يرجى المحاولة مرة أخرى.'
+          : 'Sorry, there was an error processing your message. Please try again.';
+      }
+      
       const errorMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
-        content: selectedLanguage === 'ar' 
-          ? 'عذراً، حدث خطأ في معالجة رسالتك. يرجى المحاولة مرة أخرى.'
-          : 'Sorry, there was an error processing your message. Please try again.',
+        content: errorMessage,
         role: 'assistant',
         timestamp: Date.now(),
         language: selectedLanguage

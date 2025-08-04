@@ -119,37 +119,103 @@ const chatbotMiddleware = {
         stack: error.stack
       });
 
-      // Handle specific error types
-      if (error.message.includes('Rate limit')) {
-        return res.status(429).json({
-          error: 'Service temporarily unavailable due to high demand. Please try again in a moment.',
+      // Enhanced error handling with graceful messages
+      const selectedLanguage = req.body.selectedLanguage || 'en';
+      let errorResponse = null;
+      
+      if (error.message.includes('Many users are asking right now')) {
+        // This is our graceful rate limit message
+        errorResponse = {
+          message: selectedLanguage === 'ar' 
+            ? 'يسأل العديد من المستخدمين الآن. يرجى المحاولة مرة أخرى خلال لحظات.'
+            : 'Many users are asking right now. Please try again in a few moments.',
+          data: null,
+          language: selectedLanguage,
+          action: 'none',
           requestId,
-          retryAfter: 60
-        });
+          responseTime,
+          graceful: true
+        };
+      } else if (error.message.includes('Rate limit')) {
+        errorResponse = {
+          message: selectedLanguage === 'ar' 
+            ? 'الخدمة مشغولة حالياً. يرجى المحاولة مرة أخرى خلال دقيقة.'
+            : 'Service is busy right now. Please try again in a moment.',
+          data: null,
+          language: selectedLanguage,
+          action: 'none',
+          requestId,
+          responseTime,
+          retryAfter: 60,
+          graceful: true
+        };
+        return res.status(429).json(errorResponse);
+      } else if (error.message.includes('temporarily unavailable')) {
+        errorResponse = {
+          message: selectedLanguage === 'ar' 
+            ? 'خدمة الذكاء الاصطناعي غير متاحة مؤقتاً. يرجى المحاولة لاحقاً.'
+            : 'The AI service is temporarily unavailable. Please try again later.',
+          data: null,
+          language: selectedLanguage,
+          action: 'none',
+          requestId,
+          responseTime,
+          graceful: true
+        };
+      } else if (error.message.includes('temporarily slow')) {
+        errorResponse = {
+          message: selectedLanguage === 'ar' 
+            ? 'خدمة الذكاء الاصطناعي بطيئة مؤقتاً. يرجى المحاولة مرة أخرى.'
+            : 'The AI service is temporarily slow. Please try again.',
+          data: null,
+          language: selectedLanguage,
+          action: 'none',
+          requestId,
+          responseTime,
+          graceful: true
+        };
+      } else if (error.message.includes('Invalid API key') || error.message.includes('being configured')) {
+        logger.warn('API key issue detected, using fallback response');
+        errorResponse = {
+          message: selectedLanguage === 'ar' 
+            ? 'خدمة الذكاء الاصطناعي قيد الإعداد حالياً. يرجى المحاولة لاحقاً.'
+            : 'The AI service is currently being configured. Please try again later.',
+          data: null,
+          language: selectedLanguage,
+          action: 'none',
+          requestId,
+          responseTime,
+          fallback: true
+        };
+      } else if (error.message.includes('timeout') || error.message.includes('Network error')) {
+        errorResponse = {
+          message: selectedLanguage === 'ar' 
+            ? 'يبدو أن الاتصال بطيء. يرجى المحاولة مرة أخرى.'
+            : 'Connection seems slow. Please try again.',
+          data: null,
+          language: selectedLanguage,
+          action: 'none',
+          requestId,
+          responseTime,
+          graceful: true
+        };
+        return res.status(503).json(errorResponse);
+      }
+      
+      // If we have a graceful error response, use it
+      if (errorResponse) {
+        return res.json(errorResponse);
       }
 
-      if (error.message.includes('Invalid API key')) {
-        return res.status(500).json({
-          error: 'Service configuration error. Please contact support.',
-          requestId
-        });
-      }
-
-      if (error.message.includes('timeout') || error.message.includes('Network error')) {
-        return res.status(503).json({
-          error: 'Service temporarily unavailable. Please try again.',
-          requestId
-        });
-      }
-
-      // Fallback response
-      const fallbackResponse = getMockResponse(req.body.message, req.body.category, req.body.selectedLanguage);
+      // Final fallback to mock response for unexpected errors
+      const fallbackResponse = getMockResponse(req.body.message, req.body.category, selectedLanguage);
       
       res.json({
         ...fallbackResponse,
         requestId,
         responseTime,
-        fallback: true
+        fallback: true,
+        note: 'Using fallback response due to temporary service issue'
       });
     }
   },
